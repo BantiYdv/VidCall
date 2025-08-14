@@ -34,10 +34,17 @@ export type Message = typeof messages.$inferSelect;
 
 // WebSocket message types
 export interface SocketMessage {
-  type: 'join-room' | 'leave-room' | 'chat-message' | 'room-full' | 'user-joined' | 'user-left' | 'room-created';
+  type: 'join-room' | 'leave-room' | 'chat-message' | 'room-full' | 'user-joined' | 'user-left' | 'room-created' | 'webrtc-offer' | 'webrtc-answer' | 'webrtc-ice-candidate';
   roomId?: string;
   message?: string;
+  content?: string;
   sender?: string;
   timestamp?: number;
   participantCount?: number;
+  userId?: string;
+  // WebRTC signaling data
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+  targetUserId?: string;
 }

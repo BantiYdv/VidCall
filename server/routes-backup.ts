@@ -20,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Track room participants
   const roomParticipants = new Map<string, Set<ExtendedWebSocket>>();
   // Track user sessions to prevent duplicate joins
-  const userSessions = new Map<string, { roomId: string, ws: ExtendedWebSocket }>();
+  const userSessions = new Map<string, { roomId: string; ws: ExtendedWebSocket }>>();
 
   // API Routes
   app.get("/api/rooms", async (req, res) => {

@@ -3,11 +3,12 @@ import { useLocation } from 'wouter';
 import { useParams } from 'wouter';
 import { ChatSidebar } from '@/components/chat-sidebar';
 import { CallControls } from '@/components/call-controls';
-import { VideoArea } from '@/components/video-area';
+import { VideoElement } from '@/components/video-element';
 import { useSocket } from '@/hooks/use-socket';
+import { useWebRTC } from '@/hooks/use-webrtc';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Users } from 'lucide-react';
+import { Users, Video } from 'lucide-react';
 import type { Message, SocketMessage } from '@shared/schema';
 
 export default function VideoCall() {
@@ -19,18 +20,31 @@ export default function VideoCall() {
 
   // Call state
   const [participantCount, setParticipantCount] = useState(1);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(!isMobile);
   const [callStartTime] = useState(Date.now());
   const [callDuration, setCallDuration] = useState('00:00:00');
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentUser] = useState(() => `User${Math.floor(Math.random() * 1000)}`);
   const [remoteUser, setRemoteUser] = useState<string | null>(null);
+  const [isCallStarted, setIsCallStarted] = useState(false);
 
   // Socket connection
   const { isConnected, sendMessage } = useSocket(handleSocketMessage);
+
+  // WebRTC connection
+  const {
+    localStream,
+    remoteStream,
+    isConnected: isWebRTCConnected,
+    isVideoEnabled,
+    isAudioEnabled,
+    isScreenSharing,
+    toggleVideo,
+    toggleAudio,
+    toggleScreenShare,
+    initializeLocalStream,
+    handleSocketMessage: handleWebRTCMessage
+  } = useWebRTC({ sendMessage, userId: currentUser });
 
   useEffect(() => {
     if (!roomId) {
@@ -42,7 +56,8 @@ export default function VideoCall() {
     if (isConnected) {
       sendMessage({
         type: 'join-room',
-        roomId: roomId
+        roomId: roomId,
+        userId: currentUser
       });
     }
 
@@ -86,6 +101,9 @@ export default function VideoCall() {
   };
 
   function handleSocketMessage(message: SocketMessage) {
+    // Handle WebRTC messages
+    handleWebRTCMessage(message);
+    
     switch (message.type) {
       case 'room-full':
         toast({
@@ -99,8 +117,11 @@ export default function VideoCall() {
       case 'user-joined':
         if (message.participantCount) {
           setParticipantCount(message.participantCount);
-          if (message.participantCount === 2) {
+          if (message.participantCount === 2 && !isCallStarted) {
             setRemoteUser('Remote User');
+            setIsCallStarted(true);
+            // Initialize local stream when second user joins
+            initializeLocalStream();
             toast({
               title: "User Joined",
               description: "Another participant joined the call.",
@@ -113,6 +134,7 @@ export default function VideoCall() {
         if (message.participantCount) {
           setParticipantCount(message.participantCount);
           setRemoteUser(null);
+          setIsCallStarted(false);
           toast({
             title: "User Left",
             description: "The other participant left the call.",
@@ -121,12 +143,12 @@ export default function VideoCall() {
         break;
         
       case 'chat-message':
-        if (message.sender && message.message && message.timestamp) {
+        if (message.sender && (message.message || message.content) && message.timestamp) {
           const newMessage: Message = {
             id: `msg_${Date.now()}`,
             roomId: roomId,
             sender: message.sender,
-            content: message.message,
+            content: message.message || message.content || '',
             timestamp: new Date(message.timestamp)
           };
           setMessages(prev => [...prev, newMessage]);
@@ -145,23 +167,23 @@ export default function VideoCall() {
   };
 
   const handleToggleAudio = () => {
-    setIsAudioMuted(!isAudioMuted);
+    toggleAudio();
     toast({
-      title: isAudioMuted ? "Microphone Unmuted" : "Microphone Muted",
-      description: isAudioMuted ? "Your microphone is now on" : "Your microphone is now off",
+      title: !isAudioEnabled ? "Microphone Unmuted" : "Microphone Muted",
+      description: !isAudioEnabled ? "Your microphone is now on" : "Your microphone is now off",
     });
   };
 
   const handleToggleVideo = () => {
-    setIsVideoMuted(!isVideoMuted);
+    toggleVideo();
     toast({
-      title: isVideoMuted ? "Camera On" : "Camera Off",
-      description: isVideoMuted ? "Your camera is now on" : "Your camera is now off",
+      title: !isVideoEnabled ? "Camera On" : "Camera Off",
+      description: !isVideoEnabled ? "Your camera is now on" : "Your camera is now off",
     });
   };
 
   const handleToggleScreenShare = () => {
-    setIsScreenSharing(!isScreenSharing);
+    toggleScreenShare();
     toast({
       title: isScreenSharing ? "Screen Share Stopped" : "Screen Share Started",
       description: isScreenSharing ? "Screen sharing has been stopped" : "Screen sharing has been started",
@@ -217,24 +239,45 @@ export default function VideoCall() {
         <div className="flex-1 relative overflow-hidden">
           {/* Remote Video (Large) */}
           <div className="w-full h-full">
-            <VideoArea
-              isRemote={true}
+            <VideoElement
+              stream={remoteStream}
               userName={remoteUser || "Waiting for participant..."}
-              isVideoMuted={!remoteUser}
+              isVideoEnabled={!!remoteStream}
+              isScreenSharing={false}
               className="w-full h-full"
             />
           </div>
 
           {/* Local Video (Picture-in-Picture) */}
           <div className="absolute bottom-4 right-4 w-72 h-48 bg-gray-800 rounded-xl shadow-2xl border-2 border-white border-opacity-20 overflow-hidden">
-            <VideoArea
-              isRemote={false}
+            <VideoElement
+              stream={localStream}
+              isLocal={true}
+              isMuted={true}
               userName="You"
-              isVideoMuted={isVideoMuted}
-              isAudioMuted={isAudioMuted}
+              isVideoEnabled={isVideoEnabled}
+              isScreenSharing={isScreenSharing}
               className="w-full h-full"
             />
           </div>
+
+          {/* Start Call Button */}
+          {!isCallStarted && participantCount === 1 && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="text-center text-white">
+                <Video size={64} className="mx-auto mb-4 text-blue-400" />
+                <h3 className="text-xl font-semibold mb-2">Ready to start?</h3>
+                <p className="mb-4">Click to initialize your camera and microphone</p>
+                <button
+                  onClick={initializeLocalStream}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors"
+                >
+                  <Video size={20} />
+                  <span>Start Camera</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chat Sidebar */}
@@ -266,8 +309,8 @@ export default function VideoCall() {
 
       {/* Bottom Controls */}
       <CallControls
-        isAudioMuted={isAudioMuted}
-        isVideoMuted={isVideoMuted}
+        isAudioMuted={!isAudioEnabled}
+        isVideoMuted={!isVideoEnabled}
         isScreenSharing={isScreenSharing}
         onToggleAudio={handleToggleAudio}
         onToggleVideo={handleToggleVideo}

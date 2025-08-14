@@ -2,7 +2,16 @@
 
 ## Overview
 
-This is a real-time video calling application built with React frontend and Express backend. The application enables users to create and join video call rooms with integrated chat functionality. It features a modern UI built with shadcn/ui components and uses WebSocket connections for real-time communication.
+This is a complete real-time video calling application built with React frontend and Express backend. The application enables users to create and join video call rooms with full WebRTC video calling, screen sharing, and integrated chat functionality. It features a modern UI built with shadcn/ui components and uses WebSocket connections for real-time communication and WebRTC signaling.
+
+## Recent Changes (August 14, 2025)
+
+- **Implemented Full WebRTC Video Calling**: Added real-time peer-to-peer video communication using WebRTC with ICE servers from Xirsys
+- **Added Screen Sharing**: Users can share their screen during video calls
+- **Enhanced Room Management**: Fixed duplicate user joining issues with proper session tracking
+- **Real Video Elements**: Replaced mock video areas with actual HTML5 video elements for local and remote streams
+- **WebRTC Signaling**: Implemented proper offer/answer/ICE candidate exchange through WebSocket
+- **Camera/Microphone Controls**: Full media device control with real mute/unmute functionality
 
 ## User Preferences
 
