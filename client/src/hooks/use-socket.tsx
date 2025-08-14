@@ -70,7 +70,13 @@ export function useSocket(onMessage?: (message: SocketMessage) => void): UseSock
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
     } else {
-      console.error('WebSocket is not connected');
+      console.warn('WebSocket is not connected, queueing message');
+      // Queue the message and try to send it when connected
+      setTimeout(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(message));
+        }
+      }, 100);
     }
   };
 

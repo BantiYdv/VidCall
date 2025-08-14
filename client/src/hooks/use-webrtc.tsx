@@ -50,7 +50,9 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
   const originalStream = useRef<MediaStream | null>(null);
 
   const initializePeerConnection = useCallback(() => {
-    if (peerConnection.current) return peerConnection.current;
+    if (peerConnection.current && peerConnection.current.connectionState !== 'closed') {
+      return peerConnection.current;
+    }
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
     
@@ -70,12 +72,16 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('Connection state:', pc.connectionState);
+      console.log('Connection state:', pc.connectionState, 'Signaling state:', pc.signalingState);
       if (pc.connectionState === 'connected') {
         setIsConnected(true);
       } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
         setIsConnected(false);
       }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', pc.iceGatheringState);
     };
 
     peerConnection.current = pc;
@@ -106,10 +112,20 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
 
   const createOffer = useCallback(async () => {
     const pc = peerConnection.current;
-    if (!pc) return;
+    if (!pc || pc.connectionState === 'closed' || pc.signalingState === 'closed') return;
 
     try {
-      const offer = await pc.createOffer();
+      // Only create offer if we're in the right state
+      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer') {
+        console.log('Cannot create offer, signaling state:', pc.signalingState);
+        return;
+      }
+
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
+      
       await pc.setLocalDescription(offer);
       
       sendMessage({
@@ -125,12 +141,12 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
 
   const handleSocketMessage = useCallback(async (message: SocketMessage) => {
     const pc = peerConnection.current;
-    if (!pc) return;
+    if (!pc || pc.connectionState === 'closed') return;
 
     try {
       switch (message.type) {
         case 'webrtc-offer':
-          if (message.offer) {
+          if (message.offer && pc.signalingState === 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
@@ -145,14 +161,14 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
           break;
           
         case 'webrtc-answer':
-          if (message.answer) {
+          if (message.answer && pc.signalingState === 'have-local-offer') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.answer));
             console.log('Answer received');
           }
           break;
           
         case 'webrtc-ice-candidate':
-          if (message.candidate) {
+          if (message.candidate && pc.remoteDescription) {
             await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
             console.log('ICE candidate added');
           }
@@ -160,8 +176,16 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
       }
     } catch (error) {
       console.error('Error handling WebRTC message:', error);
+      // Reset connection on error
+      if (pc.connectionState === 'failed') {
+        setTimeout(() => {
+          if (localStream) {
+            initializePeerConnection();
+          }
+        }, 1000);
+      }
     }
-  }, [sendMessage]);
+  }, [sendMessage, localStream, initializePeerConnection]);
 
   const toggleVideo = useCallback(() => {
     if (localStream) {
@@ -233,15 +257,24 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
     }
   }, [isScreenSharing]);
 
-  // Trigger offer when we have local stream and this is the first user
+  // Initialize local stream when participants are present
   useEffect(() => {
-    if (localStream && userId) {
-      // Small delay to ensure the other user is ready
-      setTimeout(() => {
-        createOffer();
-      }, 1000);
+    if (participants.length >= 1 && !localStream) {
+      initializeLocalStream();
     }
-  }, [localStream, userId, createOffer]);
+  }, [participants, localStream, initializeLocalStream]);
+
+  // Only trigger offer when we have local stream but no ongoing negotiation
+  useEffect(() => {
+    if (localStream && peerConnection.current && peerConnection.current.signalingState === 'stable') {
+      // Small delay to ensure both users have initialized their streams
+      const timer = setTimeout(() => {
+        createOffer();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [localStream, createOffer]);
 
   // Cleanup
   useEffect(() => {

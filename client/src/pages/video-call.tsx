@@ -5,7 +5,7 @@ import { ChatSidebar } from '@/components/chat-sidebar';
 import { CallControls } from '@/components/call-controls';
 import { VideoElement } from '@/components/video-element';
 import { useSocket } from '@/hooks/use-socket';
-import { useWebRTC } from '@/hooks/use-webrtc';
+import { useWebRTCSimple } from '@/hooks/use-webrtc-simple';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Users, Video } from 'lucide-react';
@@ -38,13 +38,11 @@ export default function VideoCall() {
     isConnected: isWebRTCConnected,
     isVideoEnabled,
     isAudioEnabled,
-    isScreenSharing,
     toggleVideo,
     toggleAudio,
-    toggleScreenShare,
     initializeLocalStream,
     handleSocketMessage: handleWebRTCMessage
-  } = useWebRTC({ sendMessage, userId: currentUser });
+  } = useWebRTCSimple({ sendMessage, participants: [] });
 
   useEffect(() => {
     if (!roomId) {
@@ -120,8 +118,10 @@ export default function VideoCall() {
           if (message.participantCount === 2 && !isCallStarted) {
             setRemoteUser('Remote User');
             setIsCallStarted(true);
-            // Initialize local stream when second user joins
-            initializeLocalStream();
+            // Initialize local stream when second user joins only if we don't have it yet
+            if (!localStream) {
+              initializeLocalStream();
+            }
             toast({
               title: "User Joined",
               description: "Another participant joined the call.",
@@ -183,10 +183,9 @@ export default function VideoCall() {
   };
 
   const handleToggleScreenShare = () => {
-    toggleScreenShare();
     toast({
-      title: isScreenSharing ? "Screen Share Stopped" : "Screen Share Started",
-      description: isScreenSharing ? "Screen sharing has been stopped" : "Screen sharing has been started",
+      title: "Screen Share",
+      description: "Screen sharing feature coming soon!",
     });
   };
 
@@ -256,7 +255,7 @@ export default function VideoCall() {
               isMuted={true}
               userName="You"
               isVideoEnabled={isVideoEnabled}
-              isScreenSharing={isScreenSharing}
+              isScreenSharing={false}
               className="w-full h-full"
             />
           </div>
@@ -311,7 +310,7 @@ export default function VideoCall() {
       <CallControls
         isAudioMuted={!isAudioEnabled}
         isVideoMuted={!isVideoEnabled}
-        isScreenSharing={isScreenSharing}
+        isScreenSharing={false}
         onToggleAudio={handleToggleAudio}
         onToggleVideo={handleToggleVideo}
         onToggleScreenShare={handleToggleScreenShare}
