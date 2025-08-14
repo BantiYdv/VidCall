@@ -15,8 +15,27 @@ export function useSocket(onMessage?: (message: SocketMessage) => void): UseSock
 
   useEffect(() => {
     function connect() {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Try different connection approaches for Replit environment
+      let wsUrl: string;
+      
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Local development
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl = `${protocol}//${window.location.host}/ws`;
+      } else {
+        // Replit or production - use the same origin but ensure clean URL
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const cleanHost = window.location.host.split('?')[0]; // Remove any query parameters
+        wsUrl = `${protocol}//${cleanHost}/ws`;
+      }
+      
+      console.log('Connecting to WebSocket:', wsUrl);
+      console.log('Host info:', {
+        hostname: window.location.hostname,
+        host: window.location.host,
+        protocol: window.location.protocol,
+        href: window.location.href
+      });
       
       const ws = new WebSocket(wsUrl);
 
@@ -52,6 +71,8 @@ export function useSocket(onMessage?: (message: SocketMessage) => void): UseSock
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        console.error('WebSocket URL that failed:', wsUrl);
+        console.error('Current location:', window.location);
       };
 
       setSocket(ws);
