@@ -171,7 +171,9 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
   // Initialize stream when component mounts
   useEffect(() => {
     initializeLocalStream();
-  }, [initializeLocalStream]);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Create offer when second participant joins and we are first
   useEffect(() => {
