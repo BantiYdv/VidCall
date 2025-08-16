@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoConnect - Secure Video Calling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    'google-blue': '#1A73E8',
+                    'google-gray': '#5F6368',
+                    'google-dark': '#202124',
+                    'discord-dark': '#36393F',
+                    'discord-message': '#40444B',
+                }
+            }
+        }
+    };
+    </script>
+</head>
+<body class="font-inter bg-gray-50 min-h-screen">
+
+    <!-- Landing Page -->
+    <div id="landingPage" class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-google-blue rounded-lg flex items-center justify-center">
+                            <i class="fas fa-video text-white text-lg"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-google-dark">VideoConnect</h1>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-6">
+                        <a href="#" class="text-google-gray hover:text-google-dark transition-colors">Features</a>
+                        <a href="#" class="text-google-gray hover:text-google-dark transition-colors">Support</a>
+                        <button class="px-4 py-2 text-google-blue border border-google-blue rounded-lg hover:bg-blue-50 transition-colors">Sign In</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-bold text-google-dark mb-6">
+                    Secure Video Calling<br>
+                    <span class="text-google-blue">Made Simple</span>
+                </h2>
+                <p class="text-xl text-google-gray max-w-2xl mx-auto mb-8">
+                    Create or join a room for instant video calls. Maximum 2 users per room with end-to-end encryption and crystal clear video quality.
+                </p>
+            </div>
+
+            <!-- Main Action Cards -->
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <!-- Create Room Card -->
+                <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-plus text-green-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-semibold text-google-dark mb-2">Create Room</h3>
+                        <p class="text-google-gray">Start a new video call room and invite others</p>
+                    </div>
+                    <button onclick="createRoom()" class="w-full bg-google-blue text-white py-4 px-6 rounded-xl font-semibold hover:bg-blue-600 transition-colors shadow-lg">
+                        <i class="fas fa-video mr-2"></i>
+                        Create New Room
+                    </button>
+                </div>
+
+                <!-- Join Room Card -->
+                <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 hover:shadow-2xl transition-shadow">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-sign-in-alt text-blue-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-semibold text-google-dark mb-2">Join Room</h3>
+                        <p class="text-google-gray">Enter a room ID to join an existing call</p>
+                    </div>
+                    <div class="space-y-4">
+                        <input 
+                            type="text" 
+                            id="roomIdInput" 
+                            placeholder="Enter Room ID (e.g., ABC123)" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-google-blue focus:border-transparent outline-none"
+                        >
+                        <button onclick="joinRoom()" class="w-full bg-indigo-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            Join Room
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Rooms -->
+            <div id="activeRooms" class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                <h3 class="text-xl font-semibold text-google-dark mb-4 flex items-center">
+                    <i class="fas fa-users text-google-blue mr-2"></i>
+                    Available Rooms
+                </h3>
+                <div id="roomsList" class="space-y-3">
+                    <!-- Rooms will be populated here -->
+                    <div class="text-center py-8 text-google-gray">
+                        <i class="fas fa-coffee text-4xl mb-4 opacity-50"></i>
+                        <p>No active rooms. Create one to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Video Call Interface -->
+    <div id="callInterface" class="hidden fixed inset-0 bg-google-dark">
+        <!-- Top Bar -->
+        <div class="absolute top-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm z-20 p-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 text-white">
+                    <h3 class="font-semibold">Room: <span id="currentRoomId">ABC123</span></h3>
+                    <div class="flex items-center space-x-2 text-green-400">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span class="text-sm">Connected</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- @STATE: participants:array = [] -->
+                    <div class="flex items-center space-x-2 text-white">
+                        <i class="fas fa-users"></i>
+                        <span id="participantCount">1/2</span>
+                    </div>
+                    <!-- @FUNCTIONALITY: Show elapsed call time -->
+                    <div class="text-white text-sm font-mono" id="callTimer">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Grid -->
+        <div class="h-full flex relative">
+            <!-- Main Video Area -->
+            <div class="flex-1 relative overflow-hidden">
+                <!-- Remote Video (Large) -->
+                <!-- @COMPONENT: RemoteVideo [streamId, isScreenShare] -->
+                <div id="remoteVideoContainer" class="w-full h-full bg-gray-900 flex items-center justify-center relative">
+                    <!-- Simulated remote video stream with mountain landscape -->
+                    <div class="w-full h-full bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center relative">
+                        <div class="text-white text-center">
+                            <div class="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                                <i class="fas fa-user text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2" data-bind="remoteUser.name">Waiting for participant...</h3>
+                            <p class="text-gray-300" data-mock="true">Camera is off</p>
+                        </div>
+                        <!-- Connection status overlay -->
+                        <div class="absolute top-4 left-4 bg-black bg-opacity-50 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <div class="flex items-center space-x-2 text-white text-sm">
+                                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                                <span>HD Quality</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: RemoteVideo -->
+
+                <!-- Local Video (Picture-in-Picture) -->
+                <!-- @COMPONENT: LocalVideo [position, size] -->
+                <div class="absolute bottom-4 right-4 w-72 h-48 bg-gray-800 rounded-xl shadow-2xl border-2 border-white border-opacity-20 overflow-hidden">
+                    <!-- Simulated local video stream -->
+                    <div class="w-full h-full bg-gradient-to-br from-green-600 to-blue-600 flex items-center justify-center relative">
+                        <div class="text-white text-center">
+                            <div class="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-user text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-medium" data-bind="localUser.name" data-mock="true">You</p>
+                        </div>
+                        <!-- Local video controls overlay -->
+                        <div class="absolute bottom-2 left-2 right-2 flex justify-center space-x-2">
+                            <button class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-white hover:bg-opacity-70 transition-all">
+                                <i class="fas fa-microphone-slash text-xs"></i>
+                            </button>
+                            <button class="bg-black bg-opacity-50 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-white hover:bg-opacity-70 transition-all">
+                                <i class="fas fa-video-slash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: LocalVideo -->
+            </div>
+
+            <!-- Chat Sidebar -->
+            <!-- @COMPONENT: ChatSidebar [isOpen, messages] -->
+            <div id="chatSidebar" class="w-80 bg-white border-l border-gray-200 flex flex-col hidden lg:flex">
+                <!-- Chat Header -->
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-google-dark">Chat</h3>
+                        <button onclick="toggleChat()" class="text-google-gray hover:text-google-dark transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- @MAP: messages.map(message => ( -->
+                    <!-- System message -->
+                    <div class="text-center" data-mock="true">
+                        <div class="inline-block bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
+                            You joined the room
+                        </div>
+                    </div>
+                    
+                    <!-- Received message -->
+                    <div class="flex items-start space-x-3" data-mock="true">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-white text-xs font-semibold">U</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="font-medium text-sm text-google-dark">User</span>
+                                <span class="text-xs text-google-gray">2:35 PM</span>
+                            </div>
+                            <div class="bg-gray-100 rounded-2xl rounded-tl-sm px-3 py-2">
+                                <p class="text-sm text-google-dark">Hello! Can you hear me clearly?</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sent message -->
+                    <div class="flex items-start space-x-3 justify-end" data-mock="true">
+                        <div class="flex-1 text-right">
+                            <div class="flex items-center justify-end space-x-2 mb-1">
+                                <span class="text-xs text-google-gray">2:36 PM</span>
+                                <span class="font-medium text-sm text-google-dark">You</span>
+                            </div>
+                            <div class="bg-google-blue text-white rounded-2xl rounded-tr-sm px-3 py-2 inline-block">
+                                <p class="text-sm">Yes, audio is perfect! 👍</p>
+                            </div>
+                        </div>
+                        <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-white text-xs font-semibold">Y</span>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+
+                <!-- Message Input -->
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex space-x-2">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            placeholder="Type a message..." 
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-google-blue focus:border-transparent outline-none text-sm"
+                            onkeypress="handleMessageKeypress(event)"
+                        >
+                        <button onclick="sendMessage()" class="bg-google-blue text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ChatSidebar -->
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="absolute bottom-0 left-0 right-0 p-6 z-20">
+            <div class="max-w-2xl mx-auto">
+                <!-- @COMPONENT: CallControls [isAudioMuted, isVideoMuted, isScreenSharing] -->
+                <div class="bg-white bg-opacity-10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white border-opacity-20">
+                    <div class="flex items-center justify-center space-x-4 p-4">
+                        <!-- Audio Toggle -->
+                        <button id="audioToggle" onclick="toggleAudio()" 
+                                class="w-14 h-14 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
+                                data-event="click:toggleAudio">
+                            <i class="fas fa-microphone text-white text-xl"></i>
+                        </button>
+
+                        <!-- Video Toggle -->
+                        <button id="videoToggle" onclick="toggleVideo()" 
+                                class="w-14 h-14 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
+                                data-event="click:toggleVideo">
+                            <i class="fas fa-video text-white text-xl"></i>
+                        </button>
+
+                        <!-- Screen Share -->
+                        <button id="screenShareToggle" onclick="toggleScreenShare()" 
+                                class="w-14 h-14 bg-gray-600 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
+                                data-event="click:toggleScreenShare">
+                            <i class="fas fa-desktop text-white text-xl"></i>
+                        </button>
+
+                        <!-- Chat Toggle (Mobile) -->
+                        <button onclick="toggleChat()" 
+                                class="w-14 h-14 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg lg:hidden">
+                            <i class="fas fa-comment text-white text-xl"></i>
+                        </button>
+
+                        <!-- More Options -->
+                        <button onclick="showMoreOptions()" 
+                                class="w-14 h-14 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg">
+                            <i class="fas fa-ellipsis-h text-white text-xl"></i>
+                        </button>
+
+                        <!-- Leave Call -->
+                        <button onclick="leaveCall()" 
+                                class="w-14 h-14 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg ml-4"
+                                data-event="click:leaveCall">
+                            <i class="fas fa-phone-slash text-white text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: CallControls -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Chat Overlay -->
+    <div id="mobileChatOverlay" class="hidden fixed inset-0 bg-white z-50 lg:hidden">
+        <!-- Chat content identical to sidebar but full screen on mobile -->
+        <div class="h-full flex flex-col">
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-google-dark">Chat</h3>
+                    <button onclick="toggleMobileChat()" class="text-google-gray hover:text-google-dark transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Messages and input identical to sidebar -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Messages will be mirrored here -->
+            </div>
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex space-x-2">
+                    <input type="text" placeholder="Type a message..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-google-blue focus:border-transparent outline-none text-sm">
+                    <button class="bg-google-blue text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- Toasts will be dynamically added here -->
+    </div>
+
+    <script>
+        // Global state
+        let currentRoom = null;
+        let isInCall = false;
+        let isAudioMuted = false;
+        let isVideoMuted = false;
+        let isScreenSharing = false;
+        let isChatOpen = true;
+        let socket = null;
+        let callStartTime = null;
+
+        // Initialize Socket.IO connection
+        (function initializeSocket() {
+            // TODO: Replace with actual Socket.IO server URL
+            // socket = io('http://localhost:3000');
+            
+            // Mock socket events for demo
+            console.log('Socket.IO would be initialized here');
+            
+            // Simulate socket events
+            setTimeout(() => {
+                showToast('Connected to server', 'success');
+            }, 1000);
+        })();
+
+        // Room management functions
+        function createRoom() {
+            const roomId = generateRoomId();
+            currentRoom = roomId;
+            
+            showToast(`Room ${roomId} created!`, 'success');
+            
+            // TODO: Emit room creation to server
+            // socket.emit('create-room', { roomId });
+            
+            // Simulate room creation
+            setTimeout(() => {
+                enterCall(roomId);
+            }, 1000);
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
+            
+            if (!roomId) {
+                showToast('Please enter a room ID', 'error');
+                return;
+            }
+
+            if (roomId.length < 3) {
+                showToast('Room ID must be at least 3 characters', 'error');
+                return;
+            }
+
+            // TODO: Emit join room to server with capacity check
+            // socket.emit('join-room', { roomId });
+            
+            // Simulate room joining with capacity check
+            simulateRoomJoin(roomId);
+        }
+
+        function simulateRoomJoin(roomId) {
+            // Simulate server response
+            setTimeout(() => {
+                const isRoomFull = Math.random() < 0.3; // 30% chance room is full
+                const roomExists = Math.random() < 0.8; // 80% chance room exists
+                
+                if (!roomExists) {
+                    showToast('Room not found', 'error');
+                    return;
+                }
+                
+                if (isRoomFull) {
+                    showToast('Room is full (2/2 participants)', 'error');
+                    return;
+                }
+                
+                currentRoom = roomId;
+                showToast(`Joined room ${roomId}`, 'success');
+                enterCall(roomId);
+            }, 1500);
+        }
+
+        function enterCall(roomId) {
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('callInterface').classList.remove('hidden');
+            document.getElementById('currentRoomId').textContent = roomId;
+            
+            isInCall = true;
+            callStartTime = Date.now();
+            startCallTimer();
+            
+            // TODO: Initialize WebRTC connection
+            // initializeWebRTC();
+            
+            showToast('Initializing video call...', 'info');
+            
+            // Simulate participant joining
+            setTimeout(() => {
+                simulateParticipantJoin();
+            }, 3000);
+        }
+
+        function simulateParticipantJoin() {
+            document.getElementById('participantCount').textContent = '2/2';
+            
+            // Update remote video container
+            const remoteContainer = document.getElementById('remoteVideoContainer');
+            remoteContainer.innerHTML = `
+                <div class="w-full h-full relative">
+                    <!-- Beautiful mountain landscape simulation -->
+                    <div class="w-full h-full bg-cover bg-center bg-no-repeat" 
+                         style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');">
+                        <div class="absolute bottom-4 left-4 bg-black bg-opacity-50 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <div class="flex items-center space-x-2 text-white text-sm">
+                                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                                <span>Alex Johnson</span>
+                            </div>
+                        </div>
+                        <div class="absolute top-4 right-4 bg-black bg-opacity-50 backdrop-blur-sm rounded-lg px-3 py-2">
+                            <div class="flex items-center space-x-2 text-white text-sm">
+                                <i class="fas fa-signal text-green-400"></i>
+                                <span>Excellent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            showToast('Participant joined the call', 'success');
+        }
+
+        // Call control functions
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const button = document.getElementById('audioToggle');
+            const icon = button.querySelector('i');
+            
+            if (isAudioMuted) {
+                button.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                button.classList.add('bg-red-600', 'hover:bg-red-700');
+                icon.classList.remove('fa-microphone');
+                icon.classList.add('fa-microphone-slash');
+                showToast('Microphone muted', 'info');
+            } else {
+                button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                button.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                icon.classList.remove('fa-microphone-slash');
+                icon.classList.add('fa-microphone');
+                showToast('Microphone unmuted', 'info');
+            }
+            
+            // TODO: Implement actual audio muting
+            // localStream.getAudioTracks()[0].enabled = !isAudioMuted;
+        }
+
+        function toggleVideo() {
+            isVideoMuted = !isVideoMuted;
+            const button = document.getElementById('videoToggle');
+            const icon = button.querySelector('i');
+            
+            if (isVideoMuted) {
+                button.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                button.classList.add('bg-red-600', 'hover:bg-red-700');
+                icon.classList.remove('fa-video');
+                icon.classList.add('fa-video-slash');
+                showToast('Camera turned off', 'info');
+            } else {
+                button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                button.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                icon.classList.remove('fa-video-slash');
+                icon.classList.add('fa-video');
+                showToast('Camera turned on', 'info');
+            }
+            
+            // TODO: Implement actual video toggling
+            // localStream.getVideoTracks()[0].enabled = !isVideoMuted;
+        }
+
+        function toggleScreenShare() {
+            isScreenSharing = !isScreenSharing;
+            const button = document.getElementById('screenShareToggle');
+            
+            if (isScreenSharing) {
+                button.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                showToast('Screen sharing started', 'success');
+                
+                // TODO: Implement actual screen sharing
+                // navigator.mediaDevices.getDisplayMedia()
+            } else {
+                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                button.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                showToast('Screen sharing stopped', 'info');
+            }
+        }
+
+        function toggleChat() {
+            const chatSidebar = document.getElementById('chatSidebar');
+            isChatOpen = !isChatOpen;
+            
+            if (isChatOpen) {
+                chatSidebar.classList.remove('hidden');
+                chatSidebar.classList.add('flex');
+            } else {
+                chatSidebar.classList.add('hidden');
+                chatSidebar.classList.remove('flex');
+            }
+        }
+
+        function toggleMobileChat() {
+            const mobileChat = document.getElementById('mobileChatOverlay');
+            mobileChat.classList.toggle('hidden');
+        }
+
+        function showMoreOptions() {
+            // TODO: Show more options menu
+            showToast('More options coming soon!', 'info');
+        }
+
+        function leaveCall() {
+            if (confirm('Are you sure you want to leave the call?')) {
+                isInCall = false;
+                currentRoom = null;
+                
+                document.getElementById('callInterface').classList.add('hidden');
+                document.getElementById('landingPage').classList.remove('hidden');
+                
+                // Reset room input
+                document.getElementById('roomIdInput').value = '';
+                
+                showToast('Left the call', 'info');
+                
+                // TODO: Cleanup WebRTC connections and emit leave event
+                // socket.emit('leave-room', { roomId: currentRoom });
+            }
+        }
+
+        // Chat functions
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // TODO: Emit message to server
+            // socket.emit('chat-message', { roomId: currentRoom, message, timestamp: Date.now() });
+            
+            // Add message to UI
+            addMessageToChat('You', message, true);
+            input.value = '';
+            
+            // Simulate receiving a response
+            setTimeout(() => {
+                const responses = [
+                    "That sounds great!",
+                    "I agree with that.",
+                    "Let me think about it.",
+                    "Good point!",
+                    "Thanks for sharing."
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addMessageToChat('Alex', randomResponse, false);
+            }, 1000 + Math.random() * 2000);
+        }
+
+        function handleMessageKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessageToChat(sender, message, isOwn) {
+            const container = document.getElementById('messagesContainer');
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isOwn ? 
+                'flex items-start space-x-3 justify-end' : 
+                'flex items-start space-x-3';
+            
+            if (isOwn) {
+                messageDiv.innerHTML = `
+                    <div class="flex-1 text-right">
+                        <div class="flex items-center justify-end space-x-2 mb-1">
+                            <span class="text-xs text-google-gray">${timestamp}</span>
+                            <span class="font-medium text-sm text-google-dark">${sender}</span>
+                        </div>
+                        <div class="bg-google-blue text-white rounded-2xl rounded-tr-sm px-3 py-2 inline-block">
+                            <p class="text-sm">${message}</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-xs font-semibold">${sender.charAt(0)}</span>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white text-xs font-semibold">${sender.charAt(0)}</span>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="font-medium text-sm text-google-dark">${sender}</span>
+                            <span class="text-xs text-google-gray">${timestamp}</span>
+                        </div>
+                        <div class="bg-gray-100 rounded-2xl rounded-tl-sm px-3 py-2">
+                            <p class="text-sm text-google-dark">${message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Utility functions
+        function generateRoomId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function startCallTimer() {
+            setInterval(() => {
+                if (isInCall && callStartTime) {
+                    const elapsed = Date.now() - callStartTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    const timerElement = document.getElementById('callTimer');
+                    if (timerElement) {
+                        timerElement.textContent = 
+                            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }
+            }, 1000);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            
+            toast.className = `${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-x-full');
+            }, 100);
+            
+            // Remove after delay
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Focus room input on page load
+            const roomInput = document.getElementById('roomIdInput');
+            if (roomInput) {
+                roomInput.focus();
+            }
+            
+            // Show welcome message
+            setTimeout(() => {
+                showToast('Welcome to VideoConnect! Create or join a room to start.', 'info');
+            }, 500);
+        });
+
+        // TODO: WebRTC Implementation
+        /*
+        const iceServers = {
+            iceServers: [
+                { urls: ["stun:bn-turn1.xirsys.com"] },
+                {
+                    username: "90XfnpAlrWkhJOCKYqT50iqR64plX07EJax_0KbpaKZJbLlXkBzvHp_2UPAcAV7dAAAAAGicP4diYW55ZHY=",
+                    credential: "a73535d0-7817-11f0-adac-0242ac140004",
+                    urls: [
+                        "turn:bn-turn1.xirsys.com:80?transport=udp",
+                        "turn:bn-turn1.xirsys.com:3478?transport=udp",
+                        "turn:bn-turn1.xirsys.com:80?transport=tcp",
+                        "turn:bn-turn1.xirsys.com:3478?transport=tcp",
+                        "turns:bn-turn1.xirsys.com:443?transport=tcp",
+                        "turns:bn-turn1.xirsys.com:5349?transport=tcp"
+                    ]
+                }
+            ]
+        };
+
+        function initializeWebRTC() {
+            // Create peer connection with provided ICE servers
+            // Handle local stream capture
+            // Set up signaling through Socket.IO
+            // Handle remote stream display
+        }
+        */
+    </script>
+</body>
+</html>

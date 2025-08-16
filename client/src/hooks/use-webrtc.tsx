@@ -259,10 +259,10 @@ export function useWebRTC({ sendMessage, userId }: UseWebRTCProps): UseWebRTCRet
 
   // Initialize local stream when participants are present
   useEffect(() => {
-    if (participants.length >= 1 && !localStream) {
-      initializeLocalStream();
-    }
-  }, [participants, localStream, initializeLocalStream]);
+    initializeLocalStream();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Only trigger offer when we have local stream but no ongoing negotiation
   useEffect(() => {
