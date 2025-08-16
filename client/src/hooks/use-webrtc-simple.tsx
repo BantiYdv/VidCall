@@ -34,6 +34,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const isInitiator = useRef(false);
   const hasCreatedOffer = useRef(false);
+  const iceCandidateBuffer = useRef<any[]>([]);
 
   const createPeerConnection = useCallback(() => {
     if (peerConnection.current) {
@@ -48,7 +49,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
           type: 'webrtc-ice-candidate',
           candidate: event.candidate.toJSON()
         });
-        console.log('Sent ICE candidate');
+        console.log('Sent ICE candidate', event.candidate);
       }
     };
 
@@ -61,6 +62,23 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
     pc.onconnectionstatechange = () => {
       console.log('Connection state:', pc.connectionState);
       setIsConnected(pc.connectionState === 'connected');
+    };
+
+    pc.onsignalingstatechange = () => {
+      console.log('Signaling state:', pc.signalingState);
+      // When remoteDescription is set, add any buffered ICE candidates
+      if (pc.remoteDescription && iceCandidateBuffer.current.length > 0) {
+        console.log('Adding buffered ICE candidates');
+        iceCandidateBuffer.current.forEach(async candidate => {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log('Buffered ICE candidate added', candidate);
+          } catch (err) {
+            console.error('Error adding buffered ICE candidate', err);
+          }
+        });
+        iceCandidateBuffer.current = [];
+      }
     };
 
     peerConnection.current = pc;
@@ -97,7 +115,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
         offer: offer
       });
       hasCreatedOffer.current = true;
-      console.log('Offer sent');
+      console.log('Offer sent', offer);
     } catch (error) {
       console.error('Error creating offer:', error);
     }
@@ -111,28 +129,57 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
         case 'webrtc-offer':
           if (message.offer && pc.signalingState === 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
+            console.log('Offer received and set as remote description', message.offer);
+            // Add any buffered ICE candidates
+            if (iceCandidateBuffer.current.length > 0) {
+              console.log('Adding buffered ICE candidates after offer');
+              iceCandidateBuffer.current.forEach(async candidate => {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                  console.log('Buffered ICE candidate added', candidate);
+                } catch (err) {
+                  console.error('Error adding buffered ICE candidate', err);
+                }
+              });
+              iceCandidateBuffer.current = [];
+            }
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             sendMessage({
               type: 'webrtc-answer',
               answer: answer
             });
-            console.log('Answer sent');
+            console.log('Answer sent', answer);
           }
           break;
         case 'webrtc-answer':
           if (message.answer && pc.signalingState === 'have-local-offer') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.answer));
-            console.log('Answer received');
+            console.log('Answer received and set as remote description', message.answer);
+            // Add any buffered ICE candidates
+            if (iceCandidateBuffer.current.length > 0) {
+              console.log('Adding buffered ICE candidates after answer');
+              iceCandidateBuffer.current.forEach(async candidate => {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                  console.log('Buffered ICE candidate added', candidate);
+                } catch (err) {
+                  console.error('Error adding buffered ICE candidate', err);
+                }
+              });
+              iceCandidateBuffer.current = [];
+            }
           }
           break;
         case 'webrtc-ice-candidate':
           if (message.candidate) {
             if (pc.remoteDescription) {
               await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
-              console.log('ICE candidate added');
+              console.log('ICE candidate added', message.candidate);
             } else {
-              console.warn('Remote description not set yet, skipping ICE candidate');
+              // Buffer the candidate until remoteDescription is set
+              iceCandidateBuffer.current.push(message.candidate);
+              console.log('Buffered ICE candidate', message.candidate);
             }
           }
           break;
