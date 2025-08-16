@@ -33,6 +33,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const isInitiator = useRef(false);
+  const hasCreatedOffer = useRef(false);
 
   const createPeerConnection = useCallback(() => {
     if (peerConnection.current) {
@@ -40,18 +41,19 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
     }
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
-    
+
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         sendMessage({
           type: 'webrtc-ice-candidate',
           candidate: event.candidate.toJSON()
         });
+        console.log('Sent ICE candidate');
       }
     };
 
     pc.ontrack = (event) => {
-      console.log('Received remote stream');
+      console.log('Received remote stream', event.streams);
       setRemoteStream(event.streams[0]);
       setIsConnected(true);
     };
@@ -71,17 +73,12 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
         video: true,
         audio: true
       });
-      
       setLocalStream(stream);
       console.log('Local stream initialized');
-
       const pc = createPeerConnection();
-      
-      // Add local stream tracks to peer connection
       stream.getTracks().forEach(track => {
         pc.addTrack(track, stream);
       });
-
       return stream;
     } catch (error) {
       console.error('Error accessing media devices:', error);
@@ -90,18 +87,16 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
 
   const createOffer = useCallback(async () => {
     const pc = peerConnection.current;
-    if (!pc || pc.signalingState !== 'stable') return;
-
+    if (!pc || hasCreatedOffer.current) return;
     try {
       isInitiator.current = true;
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
       sendMessage({
         type: 'webrtc-offer',
         offer: offer
       });
-      
+      hasCreatedOffer.current = true;
       console.log('Offer sent');
     } catch (error) {
       console.error('Error creating offer:', error);
@@ -111,7 +106,6 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
   const handleSocketMessage = useCallback(async (message: SocketMessage) => {
     const pc = peerConnection.current;
     if (!pc) return;
-
     try {
       switch (message.type) {
         case 'webrtc-offer':
@@ -119,27 +113,27 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
             await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            
             sendMessage({
               type: 'webrtc-answer',
               answer: answer
             });
-            
             console.log('Answer sent');
           }
           break;
-          
         case 'webrtc-answer':
           if (message.answer && pc.signalingState === 'have-local-offer') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.answer));
             console.log('Answer received');
           }
           break;
-          
         case 'webrtc-ice-candidate':
           if (message.candidate) {
-            await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
-            console.log('ICE candidate added');
+            if (pc.remoteDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+              console.log('ICE candidate added');
+            } else {
+              console.warn('Remote description not set yet, skipping ICE candidate');
+            }
           }
           break;
       }
@@ -148,47 +142,26 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
     }
   }, [sendMessage]);
 
-  const toggleVideo = useCallback(() => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoEnabled(videoTrack.enabled);
-      }
-    }
-  }, [localStream]);
-
-  const toggleAudio = useCallback(() => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsAudioEnabled(audioTrack.enabled);
-      }
-    }
-  }, [localStream]);
-
-  // Initialize stream when component mounts
+  // Only the initiator (first user) creates the offer when both users are present
   useEffect(() => {
-    initializeLocalStream();
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Create offer when second participant joins and we are first
-  useEffect(() => {
-    if (participants.length === 2 && localStream && !isInitiator.current) {
+    if (participants.length === 2 && localStream && !isInitiator.current && !hasCreatedOffer.current) {
       setTimeout(() => {
         createOffer();
       }, 1000);
     }
   }, [participants.length, localStream, createOffer]);
 
-  // Cleanup
+  useEffect(() => {
+    initializeLocalStream();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     return () => {
       if (peerConnection.current) {
         peerConnection.current.close();
+        peerConnection.current = null;
       }
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
@@ -202,8 +175,24 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
     isConnected,
     isVideoEnabled,
     isAudioEnabled,
-    toggleVideo,
-    toggleAudio,
+    toggleVideo: () => {
+      if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = !videoTrack.enabled;
+          setIsVideoEnabled(videoTrack.enabled);
+        }
+      }
+    },
+    toggleAudio: () => {
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          setIsAudioEnabled(audioTrack.enabled);
+        }
+      }
+    },
     initializeLocalStream,
     handleSocketMessage
   };
