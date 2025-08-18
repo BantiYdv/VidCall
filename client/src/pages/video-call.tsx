@@ -38,33 +38,36 @@ export default function VideoCallPage() {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Try to join the room on mount
   useEffect(() => {
+    let cancelled = false;
     const joinRoom = async () => {
+      setReady(false);
+      setJoinStatus("pending");
       const res = await fetch(`/api/rooms/${roomId}/join`, { method: "POST" });
       const data = await res.json();
       if (data.status === "ok") {
         setJoinStatus("ok");
-        fetchParticipants();
-        // Fetch token for Agora
         const tok = await fetchRTCToken(roomId);
         setToken(tok);
-        setReady(true);
+        if (!cancelled) setReady(true);
+        fetchParticipants();
       } else {
         setJoinStatus("full");
+        if (!cancelled) setReady(false);
       }
     };
     joinRoom();
-    // Poll for participants if joined
     let interval: any;
     if (joinStatus === "ok") {
       interval = setInterval(fetchParticipants, 2000);
     }
-    return () => interval && clearInterval(interval);
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
     // eslint-disable-next-line
-  }, [roomId, joinStatus]);
+  }, [roomId]);
 
-  // Fetch participant count
   const fetchParticipants = async () => {
     const res = await fetch("/api/rooms");
     const rooms = await res.json();
@@ -75,15 +78,15 @@ export default function VideoCallPage() {
   if (joinStatus === "pending" || !ready) {
     return <div className="flex flex-col items-center justify-center min-h-screen text-xl">Joining room...</div>;
   }
-  // if (joinStatus === "full") {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center min-h-screen text-xl">
-  //       <div className="mb-4">Room Full. Only two users allowed.</div>
-  //       <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setLocation("/")}>Go Back</button>
-  //     </div>
-  //   );
-  // }
-  if (joinStatus === "ok" && participants < 2) {
+  if (joinStatus === "full") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-xl">
+        <div className="mb-4">Room Full. Only two users allowed.</div>
+        <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setLocation("/")}>Go Back</button>
+      </div>
+    );
+  }
+  if (joinStatus === "ok" && ready && participants < 2) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-xl">
         <div className="mb-4">Waiting for another user to join room <span className="font-mono font-bold">{roomId}</span>...</div>
@@ -92,6 +95,8 @@ export default function VideoCallPage() {
       </div>
     );
   }
-  // Both users are present, start the call
-  return <AgoraVideoCall channelName={roomId} token={token} uid={config.uid} />;
+  if (joinStatus === "ok" && ready && participants === 2) {
+    return <AgoraVideoCall channelName={roomId} token={token} uid={config.uid} />;
+  }
+  return null;
 }
