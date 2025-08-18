@@ -62,6 +62,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ status: "ok" });
   });
 
+  app.post("/api/rooms/:id/leave", (req, res) => {
+    const roomId = req.params.id;
+    // For demo: remove one participant from the set (simulate user leaving)
+    const participants = roomParticipants.get(roomId);
+    if (participants && participants.size > 0) {
+      // Remove one participant (simulate)
+      const first = participants.values().next().value;
+      participants.delete(first);
+      if (participants.size === 0) {
+        roomParticipants.delete(roomId);
+      }
+    }
+    res.json({ status: "ok" });
+  });
+
   app.get("/api/rooms/:id/messages", async (req, res) => {
     try {
       const { id } = req.params;

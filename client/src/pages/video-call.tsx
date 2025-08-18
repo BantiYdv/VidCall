@@ -1,63 +1,64 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams, useLocation } from "wouter";
 import AgoraVideoCall from "@/components/AgoraVideoCall";
 
 export default function VideoCallPage() {
-  const [rooms, setRooms] = useState([]);
-  const [joinedRoom, setJoinedRoom] = useState("");
-  const [error, setError] = useState("");
+  const params = useParams();
+  const roomId = params.roomId as string;
+  const [, setLocation] = useLocation();
+  const [joinStatus, setJoinStatus] = useState<"pending" | "ok" | "full">("pending");
+  const [participants, setParticipants] = useState(1);
 
-  // Fetch all rooms (open and full)
+  // Try to join the room on mount
   useEffect(() => {
-    fetch("/api/rooms")
-      .then(res => res.json())
-      .then(data => setRooms(data)); // Show all rooms
-  }, [joinedRoom]);
-
-  // Create a new room
-  const createRoom = async () => {
-    const newRoom = Math.random().toString(36).substring(2, 8).toUpperCase();
-    await fetch("/api/rooms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: newRoom }),
-    });
-    setJoinedRoom(newRoom);
-  };
-
-  // Join an existing room
-  const joinRoom = async (roomId) => {
-    const res = await fetch(`/api/rooms/${roomId}/join`, { method: "POST" });
-    const data = await res.json();
-    if (data.status === "ok") {
-      setJoinedRoom(roomId);
-      setError("");
-    } else {
-      setError("Room is full or join failed.");
+    const joinRoom = async () => {
+      const res = await fetch(`/api/rooms/${roomId}/join`, { method: "POST" });
+      const data = await res.json();
+      if (data.status === "ok") {
+        setJoinStatus("ok");
+        fetchParticipants();
+      } else {
+        setJoinStatus("full");
+      }
+    };
+    joinRoom();
+    // Poll for participants if joined
+    let interval: any;
+    if (joinStatus === "ok") {
+      interval = setInterval(fetchParticipants, 2000);
     }
+    return () => interval && clearInterval(interval);
+    // eslint-disable-next-line
+  }, [roomId, joinStatus]);
+
+  // Fetch participant count
+  const fetchParticipants = async () => {
+    const res = await fetch("/api/rooms");
+    const rooms = await res.json();
+    const found = rooms.find((r: any) => r.id === roomId);
+    if (found) setParticipants(found.participants);
   };
 
-  if (joinedRoom) {
-    return <AgoraVideoCall channelName={joinedRoom} token={null} uid={Math.floor(Math.random() * 10000)} />;
+  if (joinStatus === "pending") {
+    return <div className="flex flex-col items-center justify-center min-h-screen text-xl">Joining room...</div>;
   }
-
-  return (
-    <div>
-      <button onClick={createRoom}>Create Room</button>
-      <h3>Available Rooms:</h3>
-      <ul>
-        {rooms.map(room => (
-          <li key={room.id}>
-            Room: {room.id} ({room.participants}/2) - {room.status === "full" ? "Full" : "Open"}
-            <button
-              onClick={() => joinRoom(room.id)}
-              disabled={room.participants >= 2}
-            >
-              Join
-            </button>
-          </li>
-        ))}
-      </ul>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-    </div>
-  );
+  // if (joinStatus === "full") {
+  //   return (
+  //     <div className="flex flex-col items-center justify-center min-h-screen text-xl">
+  //       <div className="mb-4">Room Full. Only two users allowed.</div>
+  //       <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setLocation("/")}>Go Back</button>
+  //     </div>
+  //   );
+  // }
+  if (joinStatus === "ok" && participants < 2) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-xl">
+        <div className="mb-4">Waiting for another user to join room <span className="font-mono font-bold">{roomId}</span>...</div>
+        <div className="mb-4">Share this code: <span className="font-mono font-bold">{roomId}</span></div>
+        <button className="bg-gray-300 px-4 py-2 rounded" onClick={() => setLocation("/")}>Leave Room</button>
+      </div>
+    );
+  }
+  // Both users are present, start the call
+  return <AgoraVideoCall channelName={roomId} token={null} uid={Math.floor(Math.random() * 10000)} />;
 }
