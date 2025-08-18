@@ -6,11 +6,11 @@ export default function VideoCallPage() {
   const [joinedRoom, setJoinedRoom] = useState("");
   const [error, setError] = useState("");
 
-  // Fetch available rooms
+  // Fetch all rooms (open and full)
   useEffect(() => {
     fetch("/api/rooms")
       .then(res => res.json())
-      .then(data => setRooms(data.filter(room => room.participants < 2)));
+      .then(data => setRooms(data)); // Show all rooms
   }, [joinedRoom]);
 
   // Create a new room
@@ -47,8 +47,11 @@ export default function VideoCallPage() {
       <ul>
         {rooms.map(room => (
           <li key={room.id}>
-            Room: {room.id} ({room.participants}/2)
-            <button onClick={() => joinRoom(room.id)} disabled={room.participants >= 2}>
+            Room: {room.id} ({room.participants}/2) - {room.status === "full" ? "Full" : "Open"}
+            <button
+              onClick={() => joinRoom(room.id)}
+              disabled={room.participants >= 2}
+            >
               Join
             </button>
           </li>

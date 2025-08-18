@@ -10,53 +10,78 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const [roomId, setRoomId] = useState('');
   const [activeRooms, setActiveRooms] = useState([]);
+  const [waitingRoom, setWaitingRoom] = useState('');
+  const [waiting, setWaiting] = useState(false);
+  const [joinedRoom, setJoinedRoom] = useState('');
+  const [alreadyJoinedMsg, setAlreadyJoinedMsg] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchActiveRooms();
+    const interval = setInterval(fetchActiveRooms, 5000); // auto-refresh every 5s
+    return () => clearInterval(interval);
   }, []);
 
   const fetchActiveRooms = async () => {
     try {
       const response = await fetch('/api/rooms');
       const rooms = await response.json();
-      setActiveRooms(rooms);
+      setActiveRooms(rooms); // Show all rooms, not just open
+      // If waiting, check if another user joined
+      if (waitingRoom) {
+        const found = rooms.find((r: any) => r.id === waitingRoom);
+        if (found && found.participants === 2) {
+          setJoinedRoom(waitingRoom);
+          setLocation(`/call/${waitingRoom}`);
+        }
+      }
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
   };
 
-  const createRoom = () => {
+  const createRoom = async () => {
     const newRoomId = generateRoomId();
-    toast({
-      title: "Room Created",
-      description: `Room ${newRoomId} created successfully!`,
+    await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newRoomId }),
     });
-    setLocation(`/call/${newRoomId}`);
+    // Join the room as the first user
+    await fetch(`/api/rooms/${newRoomId}/join`, { method: 'POST' });
+    setWaitingRoom(newRoomId);
+    setWaiting(true);
+    setJoinedRoom(newRoomId);
+    toast({
+      title: 'Room Created',
+      description: `Room ${newRoomId} created. Waiting for another user to join...`,
+    });
   };
 
-  const joinRoom = () => {
-    const trimmedRoomId = roomId.trim().toUpperCase();
-    
-    if (!trimmedRoomId) {
-      toast({
-        title: "Error",
-        description: "Please enter a room ID",
-        variant: "destructive",
-      });
+  const leaveWaitingRoom = async () => {
+    setWaitingRoom('');
+    setWaiting(false);
+    setJoinedRoom('');
+  };
+
+  const joinRoom = async (id: string) => {
+    if (joinedRoom === id) {
+      setAlreadyJoinedMsg('You have already joined this room.');
       return;
     }
-
-    if (trimmedRoomId.length < 3) {
+    const res = await fetch(`/api/rooms/${id}/join`, { method: 'POST' });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      setJoinedRoom(id);
+      setLocation(`/call/${id}`);
+      setAlreadyJoinedMsg('');
+    } else {
       toast({
-        title: "Error", 
-        description: "Room ID must be at least 3 characters",
-        variant: "destructive",
+        title: 'Room Full',
+        description: 'This room is already full.',
+        variant: 'destructive',
       });
-      return;
     }
-
-    setLocation(`/call/${trimmedRoomId}`);
   };
 
   const generateRoomId = (): string => {
@@ -70,9 +95,25 @@ export default function Landing() {
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      joinRoom();
+      joinRoom(roomId);
     }
   };
+
+  // If user is in a room, show only waiting/call UI
+  if (joinedRoom) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-center">
+        <Card className="shadow-lg mb-8">
+          <CardContent className="p-6 text-center">
+            <h3 className="text-xl font-semibold text-google-dark mb-2">You are in Room {joinedRoom}</h3>
+            <p className="text-google-gray mb-4">Share this code: <span className="font-mono font-bold">{joinedRoom}</span></p>
+            <Button onClick={leaveWaitingRoom} variant="secondary">Leave Room</Button>
+          </CardContent>
+        </Card>
+        {alreadyJoinedMsg && <div className="text-red-500 mb-4">{alreadyJoinedMsg}</div>}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -123,6 +164,7 @@ export default function Landing() {
                 onClick={createRoom}
                 className="w-full bg-google-blue hover:bg-blue-600 text-white py-4 shadow-lg"
                 size="lg"
+                disabled={waiting}
               >
                 <Video className="mr-2" size={20} />
                 Create New Room
@@ -148,7 +190,7 @@ export default function Landing() {
                   className="text-center"
                 />
                 <Button 
-                  onClick={joinRoom}
+                  onClick={() => joinRoom(roomId)}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 shadow-lg"
                   size="lg"
                 >
@@ -159,7 +201,16 @@ export default function Landing() {
             </CardContent>
           </Card>
         </div>
-
+        {/* Waiting Room State */}
+        {waiting && waitingRoom && (
+          <Card className="shadow-lg mb-8">
+            <CardContent className="p-6 text-center">
+              <h3 className="text-xl font-semibold text-google-dark mb-2">Waiting for another user to join Room {waitingRoom}</h3>
+              <p className="text-google-gray mb-4">Share this code: <span className="font-mono font-bold">{waitingRoom}</span></p>
+              <Button onClick={leaveWaitingRoom} variant="secondary">Leave Room</Button>
+            </CardContent>
+          </Card>
+        )}
         {/* Active Rooms */}
         <Card className="shadow-lg">
           <CardContent className="p-6">
@@ -179,16 +230,18 @@ export default function Landing() {
                     <div>
                       <span className="font-semibold">Room {room.id}</span>
                       <span className="ml-2 text-sm text-google-gray">
-                        {room.participantCount}/2 participants
+                        {room.participants}/2 participants - {room.status === "full" ? "Full" : "Open"}
                       </span>
                     </div>
-                    <Button
-                      onClick={() => setLocation(`/call/${room.id}`)}
-                      disabled={room.participantCount >= 2}
-                      variant={room.participantCount >= 2 ? "secondary" : "default"}
-                    >
-                      {room.participantCount >= 2 ? "Full" : "Join"}
-                    </Button>
+                    {joinedRoom !== room.id && (
+                      <Button
+                        onClick={() => joinRoom(room.id)}
+                        disabled={room.status === "full"}
+                        variant={room.status === "full" ? "secondary" : "default"}
+                      >
+                        {room.status === "full" ? "Full" : "Join"}
+                      </Button>
+                    )}
                   </div>
                 ))
               )}
