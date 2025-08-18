@@ -1,6 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { client, createMicrophoneAndCameraTracks, appId } from "../agora/AgoraConfig";
-import type { IAgoraRTCRemoteUser, IMicrophoneAudioTrack, ICameraVideoTrack } from "agora-rtc-react";
+import {
+  LocalUser,
+  RemoteUser,
+  useJoin,
+  useLocalMicrophoneTrack,
+  useLocalCameraTrack,
+  usePublish,
+  useRemoteUsers,
+} from "agora-rtc-react";
+import AgoraRTC, { AgoraRTCProvider } from "agora-rtc-react";
+import { useState } from "react";
 
 interface AgoraVideoCallProps {
   channelName: string;
@@ -9,84 +17,55 @@ interface AgoraVideoCallProps {
 }
 
 export default function AgoraVideoCall({ channelName, token, uid }: AgoraVideoCallProps) {
-  const [users, setUsers] = useState<IAgoraRTCRemoteUser[]>([]);
-  const [tracks, setTracks] = useState<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    createMicrophoneAndCameraTracks().then((createdTracks) => {
-      if (isMounted) {
-        setTracks(createdTracks as [IMicrophoneAudioTrack, ICameraVideoTrack]);
-        setReady(true);
-      }
-    });
-    return () => { isMounted = false; };
-  }, []);
-
-  useEffect(() => {
-    let init = async () => {
-      client.on("user-published", async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
-        if (mediaType === "video") {
-          setUsers((prevUsers) => [...prevUsers, user]);
-        }
-        if (mediaType === "audio") {
-          user.audioTrack?.play();
-        }
-      });
-
-      client.on("user-unpublished", (user, type) => {
-        if (type === "audio") {
-          user.audioTrack?.stop();
-        }
-        if (type === "video") {
-          setUsers((prevUsers) => prevUsers.filter((u) => u.uid !== user.uid));
-        }
-      });
-
-      await client.join(appId, channelName, token || null, uid || null);
-      if (tracks) await client.publish(tracks);
-    };
-
-    if (ready && tracks) {
-      init();
-    }
-
-    return () => {
-      client.leave();
-      setUsers([]);
-    };
-  }, [channelName, ready, tracks, token, uid]);
+  const appId = "a32fa0ab368c43aa85985bb65628111f";
+  const [calling] = useState(true);
+  const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   return (
-    <div>
+    <AgoraRTCProvider client={client}>
+      <Basics appId={appId} channel={channelName} token={token} calling={calling} />
+    </AgoraRTCProvider>
+  );
+}
+
+function Basics({ appId, channel, token, calling }: { appId: string; channel: string; token: string | null; calling: boolean }) {
+  useJoin({ appid: appId, channel, token: token ? token : null }, calling);
+
+  const [micOn, setMic] = useState(true);
+  const [cameraOn, setCamera] = useState(true);
+  const { localMicrophoneTrack } = useLocalMicrophoneTrack(micOn);
+  const { localCameraTrack } = useLocalCameraTrack(cameraOn);
+  usePublish([localMicrophoneTrack, localCameraTrack]);
+  const remoteUsers = useRemoteUsers();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "row" }}>
+      {/* Local user video */}
+      <LocalUser
+        audioTrack={localMicrophoneTrack}
+        cameraOn={cameraOn}
+        micOn={micOn}
+        videoTrack={localCameraTrack}
+        style={{ width: "50%", height: 300, background: "#222" }}
+      />
+
+      {/* Remote users video */}
+      {remoteUsers.map((user) => (
+        <div key={user.uid}>
+          <RemoteUser user={user} style={{ width: "50%", height: 300, background: "#444" }}>
+            <span>{user.uid}</span>
+          </RemoteUser>
+        </div>
+      ))}
+
+      {/* Controls */}
       <div>
-        {/* Local video */}
-        {ready && tracks && (
-          <video
-            ref={(el) => {
-              if (el && tracks[1]) tracks[1].play(el);
-            }}
-            autoPlay
-            playsInline
-            style={{ width: "300px", height: "200px" }}
-          />
-        )}
-      </div>
-      <div>
-        {/* Remote videos */}
-        {users.map((user) => (
-          <video
-            key={String(user.uid)}
-            ref={(el) => {
-              if (el && user.videoTrack) user.videoTrack.play(el);
-            }}
-            autoPlay
-            playsInline
-            style={{ width: "300px", height: "200px" }}
-          />
-        ))}
+        <button onClick={() => setMic((on) => !on)}>
+          {micOn ? "Mute Mic" : "Unmute Mic"}
+        </button>
+        <button onClick={() => setCamera((on) => !on)}>
+          {cameraOn ? "Turn Off Camera" : "Turn On Camera"}
+        </button>
       </div>
     </div>
   );
