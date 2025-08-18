@@ -2,12 +2,41 @@ import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import AgoraVideoCall from "@/components/AgoraVideoCall";
 
+// Dummy config for demonstration; replace with your actual config or import
+const config = {
+  serverUrl: "", // Set your token server URL here
+  proxyUrl: "",
+  uid: Math.floor(Math.random() * 10000),
+  tokenExpiryTime: 3600,
+  rtcToken: null,
+};
+
+async function fetchRTCToken(channelName: string) {
+  if (config.serverUrl !== "") {
+    try {
+      const response = await fetch(
+        `${config.proxyUrl}${config.serverUrl}/rtc/${channelName}/publisher/uid/${config.uid}/?expiry=${config.tokenExpiryTime}`
+      );
+      const data = await response.json();
+      console.log("RTC token fetched from server: ", data.rtcToken);
+      return data.rtcToken;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  } else {
+    return config.rtcToken;
+  }
+}
+
 export default function VideoCallPage() {
   const params = useParams();
   const roomId = params.roomId as string;
   const [, setLocation] = useLocation();
   const [joinStatus, setJoinStatus] = useState<"pending" | "ok" | "full">("pending");
   const [participants, setParticipants] = useState(1);
+  const [token, setToken] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   // Try to join the room on mount
   useEffect(() => {
@@ -17,6 +46,10 @@ export default function VideoCallPage() {
       if (data.status === "ok") {
         setJoinStatus("ok");
         fetchParticipants();
+        // Fetch token for Agora
+        const tok = await fetchRTCToken(roomId);
+        setToken(tok);
+        setReady(true);
       } else {
         setJoinStatus("full");
       }
@@ -39,7 +72,7 @@ export default function VideoCallPage() {
     if (found) setParticipants(found.participants);
   };
 
-  if (joinStatus === "pending") {
+  if (joinStatus === "pending" || !ready) {
     return <div className="flex flex-col items-center justify-center min-h-screen text-xl">Joining room...</div>;
   }
   // if (joinStatus === "full") {
@@ -60,5 +93,5 @@ export default function VideoCallPage() {
     );
   }
   // Both users are present, start the call
-  return <AgoraVideoCall channelName={roomId} token={null} uid={Math.floor(Math.random() * 10000)} />;
+  return <AgoraVideoCall channelName={roomId} token={token} uid={config.uid} />;
 }
