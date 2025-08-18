@@ -1,52 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AgoraVideoCall from "@/components/AgoraVideoCall";
 
 export default function VideoCallPage() {
-  const [room, setRoom] = useState("");
-  const [joined, setJoined] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [joinedRoom, setJoinedRoom] = useState("");
   const [error, setError] = useState("");
 
-  const createRoom = () => {
+  // Fetch available rooms
+  useEffect(() => {
+    fetch("/api/rooms")
+      .then(res => res.json())
+      .then(data => setRooms(data.filter(room => room.participants < 2)));
+  }, [joinedRoom]);
+
+  // Create a new room
+  const createRoom = async () => {
     const newRoom = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setRoom(newRoom);
-    setJoined(false);
-    setError("");
+    await fetch("/api/rooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: newRoom }),
+    });
+    setJoinedRoom(newRoom);
   };
 
-  const joinRoom = async () => {
-    // Call your backend to check/join room
-    try {
-      const res = await fetch(`/api/rooms/${room}/join`, { method: "POST" });
-      const data = await res.json();
-      if (data.status === "ok") {
-        setJoined(true);
-        setError("");
-      } else if (data.status === "full") {
-        setError("Room is full. Only two users allowed.");
-      } else {
-        setError("Failed to join room.");
-      }
-    } catch (e) {
-      setError("Failed to join room.");
+  // Join an existing room
+  const joinRoom = async (roomId) => {
+    const res = await fetch(`/api/rooms/${roomId}/join`, { method: "POST" });
+    const data = await res.json();
+    if (data.status === "ok") {
+      setJoinedRoom(roomId);
+      setError("");
+    } else {
+      setError("Room is full or join failed.");
     }
   };
 
+  if (joinedRoom) {
+    return <AgoraVideoCall channelName={joinedRoom} token={null} uid={Math.floor(Math.random() * 10000)} />;
+  }
+
   return (
     <div>
-      {!joined ? (
-        <div>
-          <button onClick={createRoom}>Create Room</button>
-          <input
-            value={room}
-            onChange={(e) => setRoom(e.target.value.toUpperCase())}
-            placeholder="Enter Room Code"
-          />
-          <button onClick={joinRoom}>Join Room</button>
-          {error && <div style={{ color: "red" }}>{error}</div>}
-        </div>
-      ) : (
-        <AgoraVideoCall channelName={room} token={null} uid={Math.floor(Math.random() * 10000)} />
-      )}
+      <button onClick={createRoom}>Create Room</button>
+      <h3>Available Rooms:</h3>
+      <ul>
+        {rooms.map(room => (
+          <li key={room.id}>
+            Room: {room.id} ({room.participants}/2)
+            <button onClick={() => joinRoom(room.id)} disabled={room.participants >= 2}>
+              Join
+            </button>
+          </li>
+        ))}
+      </ul>
+      {error && <div style={{ color: "red" }}>{error}</div>}
     </div>
   );
 }

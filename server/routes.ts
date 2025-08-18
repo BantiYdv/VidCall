@@ -23,13 +23,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const userSessions = new Map<string, { roomId: string, ws: ExtendedWebSocket }>();
 
   // API Routes
-  app.get("/api/rooms", async (req, res) => {
-    try {
-      const rooms = await storage.getAllRooms();
-      res.json(rooms);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch rooms" });
+  app.get("/api/rooms", (req, res) => {
+    const rooms = [];
+    for (const [id, participants] of roomParticipants.entries()) {
+      rooms.push({ id, participants: participants.size, status: participants.size >= 2 ? "full" : "open" });
     }
+    res.json(rooms);
   });
 
   app.post("/api/rooms", async (req, res) => {
