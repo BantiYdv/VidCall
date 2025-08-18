@@ -1,10 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { useClient, useMicrophoneAndCameraTracks, appId } from "../agora/AgoraConfig";
+import { client, createMicrophoneAndCameraTracks, appId } from "../agora/AgoraConfig";
+import type { IAgoraRTCRemoteUser, IMicrophoneAudioTrack, ICameraVideoTrack } from "agora-rtc-react";
 
-export default function AgoraVideoCall({ channelName, token, uid }) {
-  const client = useClient();
-  const { ready, tracks } = useMicrophoneAndCameraTracks();
-  const [users, setUsers] = useState([]);
+interface AgoraVideoCallProps {
+  channelName: string;
+  token: string | null;
+  uid: string | number;
+}
+
+export default function AgoraVideoCall({ channelName, token, uid }: AgoraVideoCallProps) {
+  const [users, setUsers] = useState<IAgoraRTCRemoteUser[]>([]);
+  const [tracks, setTracks] = useState<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    createMicrophoneAndCameraTracks().then((createdTracks) => {
+      if (isMounted) {
+        setTracks(createdTracks as [IMicrophoneAudioTrack, ICameraVideoTrack]);
+        setReady(true);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   useEffect(() => {
     let init = async () => {
@@ -39,7 +57,7 @@ export default function AgoraVideoCall({ channelName, token, uid }) {
       client.leave();
       setUsers([]);
     };
-  }, [channelName, client, ready, tracks, token, uid]);
+  }, [channelName, ready, tracks, token, uid]);
 
   return (
     <div>
@@ -60,7 +78,7 @@ export default function AgoraVideoCall({ channelName, token, uid }) {
         {/* Remote videos */}
         {users.map((user) => (
           <video
-            key={user.uid}
+            key={String(user.uid)}
             ref={(el) => {
               if (el && user.videoTrack) user.videoTrack.play(el);
             }}
