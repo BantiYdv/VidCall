@@ -8,7 +8,7 @@ import {
   useRemoteUsers,
 } from "agora-rtc-react";
 import AgoraRTC, { AgoraRTCProvider } from "agora-rtc-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface AgoraVideoCallProps {
   channelName: string;
@@ -20,6 +20,10 @@ export default function AgoraVideoCall({ channelName, token, uid }: AgoraVideoCa
   const appId = "a32fa0ab368c43aa85985bb65628111f";
   const [calling] = useState(true);
   const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+  useEffect(() => {
+    console.log(`[Agora] Initializing video call for channel: ${channelName}, token:`, token, ', uid:', uid);
+  }, [channelName, token, uid]);
 
   return (
     <AgoraRTCProvider client={client}>
@@ -37,6 +41,23 @@ function VideoCallUI({ appId, channel, token, calling, uid }: any) {
   const { localCameraTrack } = useLocalCameraTrack(cameraOn);
   usePublish([localMicrophoneTrack, localCameraTrack]);
   const remoteUsers = useRemoteUsers();
+
+  useEffect(() => {
+    console.log(`[Agora] useJoin: channel=${channel}, token=`, token, ', uid=', uid);
+  }, [channel, token, uid]);
+
+  useEffect(() => {
+    if (localMicrophoneTrack) {
+      console.log('[Agora] Local microphone track ready');
+    }
+    if (localCameraTrack) {
+      console.log('[Agora] Local camera track ready');
+    }
+  }, [localMicrophoneTrack, localCameraTrack]);
+
+  useEffect(() => {
+    console.log(`[Agora] Remote users:`, remoteUsers.map(u => u.uid));
+  }, [remoteUsers]);
 
   return (
     <div className="relative w-full h-screen bg-black flex items-center justify-center">
@@ -90,7 +111,10 @@ function VideoCallUI({ appId, channel, token, calling, uid }: any) {
           className={`rounded-full w-14 h-14 flex items-center justify-center bg-white shadow-lg ${
             micOn ? "" : "bg-red-500 text-white"
           }`}
-          onClick={() => setMic((on) => !on)}
+          onClick={() => {
+            setMic((on) => !on);
+            console.log(`[Agora] Mic toggled: ${!micOn}`);
+          }}
         >
           {micOn ? (
             <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -106,7 +130,10 @@ function VideoCallUI({ appId, channel, token, calling, uid }: any) {
           className={`rounded-full w-14 h-14 flex items-center justify-center bg-white shadow-lg ${
             cameraOn ? "" : "bg-red-500 text-white"
           }`}
-          onClick={() => setCamera((on) => !on)}
+          onClick={() => {
+            setCamera((on) => !on);
+            console.log(`[Agora] Camera toggled: ${!cameraOn}`);
+          }}
         >
           {cameraOn ? (
             <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -122,7 +149,10 @@ function VideoCallUI({ appId, channel, token, calling, uid }: any) {
         </button>
         <button
           className="rounded-full w-14 h-14 flex items-center justify-center bg-red-600 text-white shadow-lg"
-          onClick={() => window.location.href = '/'}
+          onClick={() => {
+            console.log('[Agora] Call ended, leaving room.');
+            window.location.href = '/';
+          }}
         >
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
