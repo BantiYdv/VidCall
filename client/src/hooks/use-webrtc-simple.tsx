@@ -3,19 +3,20 @@ import { SocketMessage } from '../../../shared/schema';
 
 const ICE_SERVERS = {
   iceServers: [
-    { urls: ["stun:bn-turn1.xirsys.com"] },
-    {
-      username: "90XfnpAlrWkhJOCKYqT50iqR64plX07EJax_0KbpaKZJbLlXkBzvHp_2UPAcAV7dAAAAAGicP4diYW55ZHY=",
-      credential: "a73535d0-7817-11f0-adac-0242ac140004",
-      urls: [
-        "turn:bn-turn1.xirsys.com:80?transport=udp",
-        "turn:bn-turn1.xirsys.com:3478?transport=udp",
-        "turn:bn-turn1.xirsys.com:80?transport=tcp",
-        "turn:bn-turn1.xirsys.com:3478?transport=tcp",
-        "turns:bn-turn1.xirsys.com:443?transport=tcp",
-        "turns:bn-turn1.xirsys.com:5349?transport=tcp"
-      ]
-    }
+    { urls: ["stun:bn-turn1.xirsys.com"] }
+    // For long-distance/global calls, uncomment the TURN server config below:
+    // {
+    //   username: "90XfnpAlrWkhJOCKYqT50iqR64plX07EJax_0KbpaKZJbLlXkBzvHp_2UPAcAV7dAAAAAGicP4diYW55ZHY=",
+    //   credential: "a73535d0-7817-11f0-adac-0242ac140004",
+    //   urls: [
+    //     "turn:bn-turn1.xirsys.com:80?transport=udp",
+    //     "turn:bn-turn1.xirsys.com:3478?transport=udp",
+    //     "turn:bn-turn1.xirsys.com:80?transport=tcp",
+    //     "turn:bn-turn1.xirsys.com:3478?transport=tcp",
+    //     "turns:bn-turn1.xirsys.com:443?transport=tcp",
+    //     "turns:bn-turn1.xirsys.com:5349?transport=tcp"
+    //   ]
+    // }
   ]
 };
 
