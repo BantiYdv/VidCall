@@ -46,6 +46,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/rooms/:id/join", async (req, res) => {
+    const roomId = req.params.id;
+    // Use in-memory map for participants (same as roomParticipants)
+    let participants = roomParticipants.get(roomId);
+    if (!participants) {
+      participants = new Set();
+      roomParticipants.set(roomId, participants);
+    }
+    if (participants.size >= 2) {
+      return res.json({ status: "full" });
+    }
+    // Simulate a join (no user tracking here, just count)
+    // In production, you would track userId/session
+    participants.add(Math.random().toString(36).substring(2, 15));
+    return res.json({ status: "ok" });
+  });
+
   app.get("/api/rooms/:id/messages", async (req, res) => {
     try {
       const { id } = req.params;
