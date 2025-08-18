@@ -36,6 +36,7 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
   const hasCreatedOffer = useRef(false);
   const iceCandidateBuffer = useRef<any[]>([]);
   const remoteStreamTimeout = useRef<NodeJS.Timeout | null>(null);
+  const tracksAdded = useRef(false);
 
   const createPeerConnection = useCallback(() => {
     if (peerConnection.current) {
@@ -91,8 +92,19 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
     };
 
     peerConnection.current = pc;
+    tracksAdded.current = false;
     return pc;
   }, [sendMessage, onError]);
+
+  const addTracksIfNeeded = useCallback((pc: RTCPeerConnection, stream: MediaStream) => {
+    if (!tracksAdded.current) {
+      stream.getTracks().forEach(track => {
+        pc.addTrack(track, stream);
+      });
+      tracksAdded.current = true;
+      console.log('Tracks added to peer connection');
+    }
+  }, []);
 
   const initializeLocalStream = useCallback(async () => {
     try {
@@ -103,21 +115,22 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
       setLocalStream(stream);
       console.log('Local stream initialized');
       const pc = createPeerConnection();
-      stream.getTracks().forEach(track => {
-        pc.addTrack(track, stream);
-      });
+      addTracksIfNeeded(pc, stream);
       return stream;
     } catch (error) {
       console.error('Error accessing media devices:', error);
       onError && onError('Could not access camera or microphone.');
     }
-  }, [createPeerConnection, onError]);
+  }, [createPeerConnection, addTracksIfNeeded, onError]);
 
   const createOffer = useCallback(async () => {
     const pc = peerConnection.current;
     if (!pc || hasCreatedOffer.current) return;
     try {
       isInitiator.current = true;
+      if (localStream) {
+        addTracksIfNeeded(pc, localStream);
+      }
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       sendMessage({
@@ -130,7 +143,7 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
       console.error('Error creating offer:', error);
       onError && onError('Error creating WebRTC offer.');
     }
-  }, [sendMessage, onError]);
+  }, [sendMessage, onError, localStream, addTracksIfNeeded]);
 
   const handleSocketMessage = useCallback(async (message: SocketMessage) => {
     const pc = peerConnection.current;
@@ -141,6 +154,9 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
           if (message.offer && pc.signalingState === 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(message.offer));
             console.log('Offer received and set as remote description', message.offer);
+            if (localStream) {
+              addTracksIfNeeded(pc, localStream);
+            }
             // Add any buffered ICE candidates
             if (iceCandidateBuffer.current.length > 0) {
               console.log('Adding buffered ICE candidates after offer');
@@ -201,7 +217,7 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
       console.error('Error handling WebRTC message:', error);
       onError && onError('Error handling WebRTC signaling message.');
     }
-  }, [sendMessage, onError]);
+  }, [sendMessage, onError, localStream, addTracksIfNeeded]);
 
   // Only the initiator (first user) creates the offer when both users are present
   useEffect(() => {
@@ -223,7 +239,7 @@ export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRT
     if (participants.length === 2 && !remoteStream) {
       remoteStreamTimeout.current = setTimeout(() => {
         if (!remoteStream) {
-          onError && onError('Could not receive remote video/audio stream. Please check your network or refresh the page.');
+          onError && onError('Could not receive remote video/audio stream. Please check your network, camera/mic permissions, or refresh the page.');
         }
       }, 15000);
     }
