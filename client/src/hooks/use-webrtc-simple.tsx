@@ -24,7 +24,7 @@ interface UseWebRTCProps {
   participants: any[];
 }
 
-export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
+export function useWebRTCSimple({ sendMessage, participants, onError }: UseWebRTCProps & { onError?: (msg: string) => void }) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -35,6 +35,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
   const isInitiator = useRef(false);
   const hasCreatedOffer = useRef(false);
   const iceCandidateBuffer = useRef<any[]>([]);
+  const remoteStreamTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const createPeerConnection = useCallback(() => {
     if (peerConnection.current) {
@@ -57,11 +58,18 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
       console.log('Received remote stream', event.streams);
       setRemoteStream(event.streams[0]);
       setIsConnected(true);
+      if (remoteStreamTimeout.current) {
+        clearTimeout(remoteStreamTimeout.current);
+        remoteStreamTimeout.current = null;
+      }
     };
 
     pc.onconnectionstatechange = () => {
       console.log('Connection state:', pc.connectionState);
       setIsConnected(pc.connectionState === 'connected');
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        onError && onError('WebRTC connection failed or disconnected.');
+      }
     };
 
     pc.onsignalingstatechange = () => {
@@ -75,6 +83,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
             console.log('Buffered ICE candidate added', candidate);
           } catch (err) {
             console.error('Error adding buffered ICE candidate', err);
+            onError && onError('Error adding buffered ICE candidate.');
           }
         });
         iceCandidateBuffer.current = [];
@@ -83,7 +92,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
 
     peerConnection.current = pc;
     return pc;
-  }, [sendMessage]);
+  }, [sendMessage, onError]);
 
   const initializeLocalStream = useCallback(async () => {
     try {
@@ -100,8 +109,9 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
       return stream;
     } catch (error) {
       console.error('Error accessing media devices:', error);
+      onError && onError('Could not access camera or microphone.');
     }
-  }, [createPeerConnection]);
+  }, [createPeerConnection, onError]);
 
   const createOffer = useCallback(async () => {
     const pc = peerConnection.current;
@@ -118,8 +128,9 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
       console.log('Offer sent', offer);
     } catch (error) {
       console.error('Error creating offer:', error);
+      onError && onError('Error creating WebRTC offer.');
     }
-  }, [sendMessage]);
+  }, [sendMessage, onError]);
 
   const handleSocketMessage = useCallback(async (message: SocketMessage) => {
     const pc = peerConnection.current;
@@ -139,6 +150,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
                   console.log('Buffered ICE candidate added', candidate);
                 } catch (err) {
                   console.error('Error adding buffered ICE candidate', err);
+                  onError && onError('Error adding buffered ICE candidate.');
                 }
               });
               iceCandidateBuffer.current = [];
@@ -165,6 +177,7 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
                   console.log('Buffered ICE candidate added', candidate);
                 } catch (err) {
                   console.error('Error adding buffered ICE candidate', err);
+                  onError && onError('Error adding buffered ICE candidate.');
                 }
               });
               iceCandidateBuffer.current = [];
@@ -186,8 +199,9 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
       }
     } catch (error) {
       console.error('Error handling WebRTC message:', error);
+      onError && onError('Error handling WebRTC signaling message.');
     }
-  }, [sendMessage]);
+  }, [sendMessage, onError]);
 
   // Only the initiator (first user) creates the offer when both users are present
   useEffect(() => {
@@ -203,6 +217,23 @@ export function useWebRTCSimple({ sendMessage, participants }: UseWebRTCProps) {
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Timeout: if remote stream is not received in 15 seconds, show error
+  useEffect(() => {
+    if (participants.length === 2 && !remoteStream) {
+      remoteStreamTimeout.current = setTimeout(() => {
+        if (!remoteStream) {
+          onError && onError('Could not receive remote video/audio stream. Please check your network or refresh the page.');
+        }
+      }, 15000);
+    }
+    return () => {
+      if (remoteStreamTimeout.current) {
+        clearTimeout(remoteStreamTimeout.current);
+        remoteStreamTimeout.current = null;
+      }
+    };
+  }, [participants.length, remoteStream, onError]);
 
   useEffect(() => {
     return () => {

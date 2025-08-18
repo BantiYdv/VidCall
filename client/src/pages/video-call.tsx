@@ -42,7 +42,11 @@ export default function VideoCall() {
     toggleAudio,
     initializeLocalStream,
     handleSocketMessage: handleWebRTCMessage
-  } = useWebRTCSimple({ sendMessage, participants: [] });
+  } = useWebRTCSimple({
+    sendMessage,
+    participants: [{ id: currentUser }], // or use actual participants if available
+    onError: (msg) => toast({ title: 'Video Call Error', description: msg, variant: 'destructive' })
+  });
 
   useEffect(() => {
     if (!roomId) {
