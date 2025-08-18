@@ -22,6 +22,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Track user sessions to prevent duplicate joins
   const userSessions = new Map<string, { roomId: string, ws: ExtendedWebSocket }>();
 
+  // Add CORS headers for all responses
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    if (req.method === "OPTIONS") {
+      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      return res.status(200).end();
+    }
+    next();
+  });
+
   // API Routes
   app.get("/api/rooms", (req, res) => {
     const rooms = [];

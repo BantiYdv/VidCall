@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import AgoraVideoCall from "@/components/AgoraVideoCall";
 
 const config = {
-  serverUrl: "", // Set your token server URL here
+  serverUrl: "https://videocall-ffj2.onrender.com", // Set your token server URL here
   proxyUrl: "",
   uid: Math.floor(Math.random() * 10000),
   tokenExpiryTime: 3600,
@@ -13,6 +13,7 @@ const config = {
 async function fetchRTCToken(channelName: string) {
   if (config.serverUrl !== "") {
     try {
+      alert(`${config.proxyUrl}${config.serverUrl}/rtc/${channelName}/publisher/uid/${config.uid}/?expiry=${config.tokenExpiryTime}`);
       const response = await fetch(
         `${config.proxyUrl}${config.serverUrl}/rtc/${channelName}/publisher/uid/${config.uid}/?expiry=${config.tokenExpiryTime}`
       );
@@ -49,11 +50,12 @@ export default function VideoCallPage() {
       try {
         const res = await fetch(`/api/rooms/${roomId}/join`, { method: "POST" });
         const data = await res.json();
+        console.log("data", data);
         console.log("[Join] Join response:", data);
+        const tok = await fetchRTCToken(roomId);
+        setToken(tok);
         if (data.status === "ok") {
           setJoinStatus("ok");
-          const tok = await fetchRTCToken(roomId);
-          setToken(tok);
           if (!cancelled) setReady(true);
           fetchParticipants();
         } else {
