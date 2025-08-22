@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+<<<<<<< HEAD
 */node_modules/
 
 # Environment variables
@@ -9,11 +10,29 @@ backend/.env
 # Build files
 frontend/build/
 frontend/dist/
+=======
+client/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+client/build/
+client/dist/
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+<<<<<<< HEAD
+=======
+lerna-debug.log*
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 
 # Runtime data
 pids
@@ -23,6 +42,10 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+<<<<<<< HEAD
+=======
+*.lcov
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 
 # nyc test coverage
 .nyc_output
@@ -33,6 +56,18 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
+<<<<<<< HEAD
+=======
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 # Optional REPL history
 .node_repl_history
 
@@ -42,13 +77,17 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
+<<<<<<< HEAD
 # dotenv environment variables file
 .env.test
 
+=======
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
+<<<<<<< HEAD
 # next.js build output
 .next
 
@@ -71,11 +110,45 @@ jspm_packages/
 .tern-port
 
 # IDE
+=======
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 .vscode/
 .idea/
 *.swp
 *.swo
+<<<<<<< HEAD
 
 # OS
 .DS_Store
+=======
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+>>>>>>> 255de916552bff7f18f7b9a3cc614985a3f8a220
 Thumbs.db
