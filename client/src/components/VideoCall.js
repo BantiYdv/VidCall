@@ -1,23 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import AgoraRTC from 'agora-rtc-sdk-ng';
 import axios from 'axios';
 import { 
-  Phone, 
   PhoneOff, 
   Video, 
   VideoOff, 
   Mic, 
   MicOff, 
   Settings,
-  X,
   Users
 } from 'lucide-react';
 
 const VideoCall = () => {
   const { roomId } = useParams();
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [client, setClient] = useState(null);
@@ -47,7 +43,7 @@ const VideoCall = () => {
         localVideoTrack.close();
       }
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeAgora = async () => {
     try {

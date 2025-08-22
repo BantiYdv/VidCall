@@ -4,11 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { 
   LogOut, 
-  Phone, 
   User, 
   Users, 
   Video, 
-  MessageSquare,
   Shield,
   Heart
 } from 'lucide-react';
@@ -22,7 +20,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [user.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchUsers = async () => {
     try {
