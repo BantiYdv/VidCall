@@ -1,280 +1,211 @@
 # VidCall - Doctor-Patient Video Call Platform
 
-A secure, role-based video calling platform built with React, Node.js, and Agora.io SDK for healthcare professionals and patients.
+A modern, full-stack video calling platform designed specifically for doctor-patient consultations. Built with React, Node.js, Express, and Agora.io for real-time video communication.
 
 ## 🚀 Features
 
 - **Role-based Authentication**: Separate login for doctors and patients
-- **Secure Video Calls**: End-to-end encrypted video communication using Agora.io
-- **Room Management**: Create and join video call rooms with role-based access control
-- **Audio/Video Controls**: Mute/unmute audio, enable/disable video
-- **Real-time Communication**: Low-latency video and audio streaming
-- **Modern UI**: Responsive design with intuitive user interface
-- **Production Ready**: Backend serves frontend for deployment on same domain
+- **Real-time Video Calls**: High-quality video calls powered by Agora.io
+- **Appointment Management**: Schedule and manage consultations
+- **Modern UI**: Beautiful, responsive interface with Tailwind CSS
+- **Secure**: JWT authentication and role-based access control
+- **Real-time Features**: Socket.IO for live updates
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Node.js** with Express.js
-- **Agora.io SDK** for video calling
-- **JWT** for authentication
-- **bcryptjs** for password hashing
-- **CORS** enabled for cross-origin requests
-
 ### Frontend
-- **React 18** with functional components and hooks
-- **React Router** for navigation
-- **Agora RTC SDK** for video/audio handling
-- **Axios** for API communication
-- **Modern CSS** with responsive design
+- **React 18** - Modern React with hooks
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **React Router** - Client-side routing
+- **Axios** - HTTP client
+- **Lucide React** - Beautiful icons
+- **Agora RTC SDK** - Video calling
 
-## 📋 Prerequisites
+### Backend
+- **Node.js** - JavaScript runtime
+- **Express.js** - Web framework
+- **Socket.IO** - Real-time communication
+- **JWT** - Authentication
+- **bcryptjs** - Password hashing
+- **Agora Access Token** - Secure token generation
 
-Before running this application, you need:
+## 📁 Project Structure
 
-1. **Node.js** (v14 or higher)
-2. **npm** or **yarn**
-3. **Agora.io Account** with App ID and Certificate
+```
+VidCall/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── App.jsx         # Main app component
+│   │   └── main.jsx        # Entry point
+│   ├── package.json        # Frontend dependencies
+│   └── vite.config.js      # Vite configuration
+├── server/                 # Node.js backend
+│   ├── server.js           # Main server file
+│   └── package.json        # Backend dependencies
+├── shared/                 # Shared utilities
+├── package.json            # Root package.json
+└── README.md              # This file
+```
 
-## 🔧 Setup Instructions
+## 🚀 Quick Start
 
-### 1. Clone and Install Dependencies
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Agora.io account
+
+### 1. Clone the Repository
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+git clone <your-repo-url>
 cd VidCall
-
-# Install backend dependencies
-npm install
-
-# Install frontend dependencies
-cd client
-npm install
-cd ..
 ```
 
-### 2. Agora.io Setup
-
-1. **Create an Agora Account**:
-   - Go to [Agora.io](https://www.agora.io/)
-   - Sign up for a free account
-   - Navigate to the Console
-
-2. **Create a New Project**:
-   - Click "Create Project"
-   - Enter a project name (e.g., "VidCall Platform")
-   - Select "RTC" as the primary service
-   - Click "Submit"
-
-3. **Get Your Credentials**:
-   - Copy the **App ID** from your project dashboard
-   - Click "Generate" to create an **App Certificate**
-   - Save both credentials securely
-
-### 3. Environment Configuration
-
-1. **Create Environment File**:
-   ```bash
-   cp env.example .env
-   ```
-
-2. **Configure Environment Variables**:
-   ```env
-   # Agora.io Configuration
-   AGORA_APP_ID=your_agora_app_id_here
-   AGORA_APP_CERTIFICATE=your_agora_app_certificate_here
-
-   # JWT Secret for authentication
-   JWT_SECRET=your_jwt_secret_here
-
-   # Server Configuration
-   PORT=3001
-   NODE_ENV=development
-   ```
-
-   **Replace the placeholder values:**
-   - `your_agora_app_id_here`: Your Agora App ID
-   - `your_agora_app_certificate_here`: Your Agora App Certificate
-   - `your_jwt_secret_here`: A secure random string for JWT signing
-
-### 4. Build Frontend
+### 2. Install Dependencies
 
 ```bash
-# Build the React app for production
-cd client
-npm run build
-cd ..
+npm run install-all
 ```
 
-### 5. Start the Application
+### 3. Set Up Environment Variables
 
-#### Development Mode
+Copy the example environment file and configure it:
+
 ```bash
-# Start both backend and frontend in development
+cp env.example .env
+```
+
+Edit `.env` with your Agora.io credentials:
+
+```env
+AGORA_APP_ID=your_agora_app_id_here
+AGORA_APP_CERTIFICATE=your_agora_app_certificate_here
+JWT_SECRET=your_jwt_secret_here
+PORT=3001
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+```
+
+### 4. Get Agora.io Credentials
+
+1. Sign up at [Agora.io](https://www.agora.io/)
+2. Create a new project
+3. Get your App ID and App Certificate
+4. Add them to your `.env` file
+
+### 5. Start Development Servers
+
+```bash
 npm run dev
 ```
 
-#### Production Mode
-```bash
-# Start the production server
-npm start
-```
+This will start both the backend (port 3001) and frontend (port 5173) servers.
 
-The application will be available at:
-- **Frontend**: http://localhost:3001
-- **Backend API**: http://localhost:3001/api
+### 6. Access the Application
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
 
 ## 👥 Demo Accounts
 
-The application comes with pre-configured demo accounts:
-
 ### Doctor Account
-- **Username**: `doctor1`
-- **Password**: `password`
-- **Role**: Doctor
-- **Name**: Dr. Smith
+- Username: `doctor1`
+- Password: `password`
 
 ### Patient Account
-- **Username**: `patient1`
-- **Password**: `password`
-- **Role**: Patient
-- **Name**: John Doe
+- Username: `patient1`
+- Password: `password`
 
-## 🎯 Usage Guide
+## 📱 Usage
 
-### 1. Login
-- Navigate to the application
-- Use one of the demo accounts to log in
-- The system will automatically redirect based on your role
+### For Patients
+1. Login with patient credentials
+2. View available doctors
+3. Schedule appointments
+4. Join video calls for consultations
+5. Access emergency call feature
 
-### 2. Dashboard
-- **Doctors**: Can create and join rooms starting with "doctor-"
-- **Patients**: Can create and join rooms starting with "patient-"
-- Use the quick join buttons or create custom rooms
+### For Doctors
+1. Login with doctor credentials
+2. View scheduled appointments
+3. Join patient consultations
+4. Access emergency rooms
+5. Manage patient calls
 
-### 3. Video Call
-- Click on any room to join the video call
-- Grant camera and microphone permissions when prompted
-- Use the control buttons to:
-  - 🔊 Mute/Unmute audio
-  - 📹 Enable/Disable video
-  - 📞 Leave the call
+## 🔧 API Endpoints
 
-### 4. Room Sharing
-- Share the room name with the other participant
-- Both participants must join the same room to start the call
-- Room names are role-restricted for security
+### Authentication
+- `POST /api/login` - User login
+- `GET /api/user` - Get user profile
+
+### Video Calls
+- `GET /api/token` - Get Agora RTC token
+
+### Appointments
+- `GET /api/appointments` - Get user appointments
+- `POST /api/appointments` - Create new appointment
+- `GET /api/doctors` - Get available doctors
+
+## 🚀 Deployment
+
+### Render Deployment
+
+1. **Connect Repository**: Link your GitHub repository to Render
+2. **Configure Build Settings**:
+   - Build Command: `npm run install-all && npm run build`
+   - Start Command: `npm start`
+3. **Environment Variables**: Add all variables from `.env`
+4. **Deploy**: Render will automatically build and deploy your app
+
+### Environment Variables for Production
+
+```env
+AGORA_APP_ID=your_production_agora_app_id
+AGORA_APP_CERTIFICATE=your_production_agora_certificate
+JWT_SECRET=your_secure_jwt_secret
+PORT=10000
+NODE_ENV=production
+CLIENT_URL=https://your-domain.com
+```
 
 ## 🔒 Security Features
 
 - **JWT Authentication**: Secure token-based authentication
-- **Role-based Access Control**: Doctors and patients can only access appropriate rooms
-- **Secure Token Generation**: Agora tokens generated server-side with expiration
-- **Input Validation**: Server-side validation for all inputs
-- **CORS Protection**: Configured for secure cross-origin requests
+- **Role-based Access**: Doctors and patients have different permissions
+- **Channel Validation**: Users can only join appropriate channels
+- **Password Hashing**: bcrypt for secure password storage
+- **CORS Protection**: Configured for production security
 
-## 🏗️ Project Structure
+## 🎨 UI Features
 
-```
-VidCall/
-├── server.js              # Main server file
-├── package.json           # Backend dependencies
-├── .env                   # Environment variables
-├── env.example           # Environment template
-├── client/               # React frontend
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Login.js
-│   │   │   ├── Dashboard.js
-│   │   │   └── VideoCall.js
-│   │   ├── App.js
-│   │   ├── index.js
-│   │   └── index.css
-│   └── package.json
-└── README.md
-```
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Dark Mode**: Video call interface with dark theme
+- **Modern Icons**: Lucide React icons throughout
+- **Loading States**: Smooth loading animations
+- **Error Handling**: User-friendly error messages
 
-## 🚀 Deployment
+## 🔧 Development
 
-### Heroku Deployment
-1. Create a Heroku account
-2. Install Heroku CLI
-3. Create a new Heroku app
-4. Set environment variables in Heroku dashboard
-5. Deploy using Git
+### Available Scripts
 
 ```bash
-heroku create your-app-name
-heroku config:set AGORA_APP_ID=your_app_id
-heroku config:set AGORA_APP_CERTIFICATE=your_certificate
-heroku config:set JWT_SECRET=your_jwt_secret
-git push heroku main
+npm run dev          # Start both frontend and backend
+npm run server       # Start backend only
+npm run client       # Start frontend only
+npm run build        # Build frontend for production
+npm run install-all  # Install all dependencies
 ```
 
-### Vercel/Netlify Deployment
-1. Build the frontend: `cd client && npm run build`
-2. Deploy the entire project to your preferred platform
-3. Set environment variables in the platform dashboard
+### Code Structure
 
-## 🔧 Customization
-
-### Adding New Users
-Edit the `users` array in `server.js`:
-
-```javascript
-const users = [
-  {
-    id: 3,
-    username: "doctor2",
-    password: "$2a$10$...", // Use bcrypt to hash passwords
-    role: "doctor",
-    name: "Dr. Johnson"
-  }
-];
-```
-
-### Database Integration
-Replace the in-memory user storage with a database:
-
-```javascript
-// Example with MongoDB
-const User = require('./models/User');
-const users = await User.find({});
-```
-
-### Styling Customization
-Modify the CSS files in `client/src/` to match your brand colors and design.
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **"Failed to join the call"**
-   - Check your Agora credentials in `.env`
-   - Ensure the room name follows the naming convention
-   - Verify your internet connection
-
-2. **"Camera/Microphone not working"**
-   - Check browser permissions
-   - Ensure no other applications are using the camera/microphone
-   - Try refreshing the page
-
-3. **"Authentication failed"**
-   - Verify JWT_SECRET is set in environment variables
-   - Check if the token has expired
-   - Clear browser localStorage and login again
-
-### Browser Compatibility
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- **Components**: Modular React components
+- **API Integration**: Centralized API calls
+- **State Management**: React hooks for state
+- **Routing**: React Router for navigation
+- **Styling**: Tailwind CSS with custom components
 
 ## 🤝 Contributing
 
@@ -284,13 +215,28 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 4. Test thoroughly
 5. Submit a pull request
 
-## 📞 Support
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
 
 For support and questions:
-- Check the troubleshooting section
-- Review Agora.io documentation
-- Open an issue in the repository
+- Check the documentation
+- Review the code comments
+- Open an issue on GitHub
+
+## 🔮 Future Enhancements
+
+- [ ] Database integration (MongoDB/PostgreSQL)
+- [ ] File sharing during calls
+- [ ] Screen sharing
+- [ ] Chat functionality
+- [ ] Appointment reminders
+- [ ] Payment integration
+- [ ] Multi-language support
+- [ ] Mobile app (React Native)
 
 ---
 
-**Note**: This is a demo application. For production use in healthcare, ensure compliance with relevant regulations (HIPAA, GDPR, etc.) and implement additional security measures.
+Built with ❤️ using modern web technologies

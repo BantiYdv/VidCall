@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import VideoCall from './components/VideoCall';
+import AppointmentForm from './components/AppointmentForm';
 import './App.css';
 
 function App() {
@@ -53,8 +54,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <div className="spinner"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
       </div>
     );
   }
@@ -73,6 +74,10 @@ function App() {
         <Route 
           path="/call/:channel" 
           element={user ? <VideoCall user={user} /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/appointments/new" 
+          element={user ? <AppointmentForm user={user} /> : <Navigate to="/login" />} 
         />
         <Route 
           path="/" 
