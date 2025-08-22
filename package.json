@@ -1,0 +1,15 @@
+{
+  "name": "my-agora-app",
+  "version": "1.0.0",
+  "description": "Agora Video Call App with React Frontend and Node.js Backend",
+  "scripts": {
+    "install": "cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && npm start & cd frontend && npm start",
+    "setup": "node setup.js"
+  },
+  "keywords": ["agora", "video-call", "react", "nodejs"],
+  "author": "",
+  "license": "MIT"
+}
