@@ -36,7 +36,16 @@ const VideoCall = () => {
   useEffect(() => {
     initializeAgora();
     return () => {
-      leaveCall();
+      // Cleanup function to ensure proper disconnection
+      if (client) {
+        client.leave();
+      }
+      if (localAudioTrack) {
+        localAudioTrack.close();
+      }
+      if (localVideoTrack) {
+        localVideoTrack.close();
+      }
     };
   }, []);
 
@@ -48,17 +57,20 @@ const VideoCall = () => {
       const agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       setClient(agoraClient);
 
+      // Generate a unique UID for this session
+      const uniqueUid = Math.floor(Math.random() * 1000000);
+
       // Get Agora token
       const tokenResponse = await axios.post('/api/agora/token', {
         channelName: roomId,
-        uid: user.id,
+        uid: uniqueUid,
         role: 'publisher'
       });
 
       const { token, appID } = tokenResponse.data;
 
       // Join the channel
-      await agoraClient.join(appID, roomId, token, user.id);
+      await agoraClient.join(appID, roomId, token, uniqueUid);
       setIsCallActive(true);
 
       // Create and publish local tracks
@@ -97,7 +109,16 @@ const VideoCall = () => {
       setLoading(false);
     } catch (error) {
       console.error('Error initializing Agora:', error);
-      setError('Failed to join the call');
+      
+      // Handle specific Agora errors
+      if (error.message && error.message.includes('UID_CONFLICT')) {
+        setError('Connection conflict. Please try again.');
+      } else if (error.message && error.message.includes('INVALID_TOKEN')) {
+        setError('Invalid token. Please check your Agora credentials.');
+      } else {
+        setError('Failed to join the call. Please try again.');
+      }
+      
       setLoading(false);
     }
   };
@@ -158,9 +179,21 @@ const VideoCall = () => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <button onClick={() => navigate('/dashboard')} className="btn-primary">
-            Return to Dashboard
-          </button>
+          <div className="space-x-4">
+            <button 
+              onClick={() => {
+                setError('');
+                setLoading(true);
+                initializeAgora();
+              }} 
+              className="btn-primary"
+            >
+              Retry Connection
+            </button>
+            <button onClick={() => navigate('/dashboard')} className="btn-secondary">
+              Return to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );

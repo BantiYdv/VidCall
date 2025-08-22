@@ -25,7 +25,7 @@ router.post('/token', (req, res) => {
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
-    // Build token
+    // Build token with the provided UID
     const token = RtcTokenBuilder.buildTokenWithUid(
       appID,
       appCertificate,
