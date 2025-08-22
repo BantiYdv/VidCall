@@ -9,7 +9,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon server.js",
     "client": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "npm install && react-scripts build",
     "install-all": "npm install",
     "setup": "node setup.js"
   },
@@ -25,7 +25,8 @@
     "react-scripts": "5.0.1",
     "agora-rtc-sdk-ng": "^4.19.3",
     "axios": "^1.5.0",
-    "react-router-dom": "^6.15.0"
+    "react-router-dom": "^6.15.0",
+    "web-vitals": "^3.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
@@ -33,5 +34,17 @@
   },
   "keywords": ["video-call", "agora", "react", "nodejs", "doctor-patient"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }
