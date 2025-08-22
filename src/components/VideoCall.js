@@ -255,29 +255,9 @@ const VideoCall = ({ user }) => {
               {joined ? 'Connected to call' : 'Connecting...'}
               {remoteUsers.length > 0 && ` - ${remoteUsers.length} participant(s) joined`}
             </div>
-
-            {/* Room Info */}
-            <div style={{ 
-              background: '#f8f9fa', 
-              padding: '1rem', 
-              borderRadius: '8px',
-              marginTop: '1rem',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>Room Information</h3>
-              <p style={{ margin: '0', color: '#666' }}>
-                <strong>Room:</strong> {channel} | 
-                <strong> Participants:</strong> {remoteUsers.length + 1} | 
-                <strong> Status:</strong> {joined ? 'Active' : 'Connecting'}
-              </p>
-            </div>
           </div>
         </div>
       </main>
-
-      <footer className="footer">
-        <p>VidCall Platform - Secure Video Communication</p>
-      </footer>
     </div>
   );
 };

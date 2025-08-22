@@ -130,32 +130,8 @@ const Dashboard = ({ user, onLogout }) => {
               ))}
             </div>
           </div>
-
-          <div className="card">
-            <h2>Instructions</h2>
-            <div style={{ color: '#666' }}>
-              <h3>For {user.role === 'doctor' ? 'Doctors' : 'Patients'}:</h3>
-              <ul style={{ marginLeft: '1.5rem', lineHeight: '1.6' }}>
-                <li>Create a new room or join an existing one</li>
-                <li>Share the room name with the other participant</li>
-                <li>Both participants need to join the same room to start the call</li>
-                <li>Use the controls during the call to manage audio/video</li>
-                <li>Click "Leave Call" to end the session</li>
-              </ul>
-              
-              <h3 style={{ marginTop: '1rem' }}>Room Naming Convention:</h3>
-              <ul style={{ marginLeft: '1.5rem', lineHeight: '1.6' }}>
-                <li><strong>Doctors:</strong> Rooms must start with "doctor-" (e.g., doctor-consultation-1)</li>
-                <li><strong>Patients:</strong> Rooms must start with "patient-" (e.g., patient-appointment-1)</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </main>
-
-      <footer className="footer">
-        <p>VidCall Platform - Secure Doctor-Patient Video Communication</p>
-      </footer>
     </div>
   );
 };

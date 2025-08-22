@@ -18,7 +18,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "client/build")));
+app.use(express.static(path.join(__dirname, "build")));
 
 // Configuration
 const APP_ID = process.env.AGORA_APP_ID;
@@ -162,7 +162,7 @@ app.get("/api/user", authenticateToken, (req, res) => {
 
 // Serve React app for all other routes
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client/build", "index.html"));
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
 // Error handling middleware
