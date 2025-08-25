@@ -26,6 +26,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    
+    // Add CSP headers to allow Agora connections
+    res.header(
+      "Content-Security-Policy",
+      "default-src 'self'; connect-src 'self' https://*.agora.io https://*.agora.com wss://*.agora.io wss://*.agora.com; script-src 'self' 'unsafe-inline' https://replit.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https://*.agora.io https://*.agora.com;"
+    );
+    
     if (req.method === "OPTIONS") {
       res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
       return res.status(200).end();
