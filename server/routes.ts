@@ -43,8 +43,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "frame-ancestors 'self'"
     ].join("; ");
 
-    // ban
-    
     res.header("Content-Security-Policy", cspDirectives);
     res.header("X-Content-Security-Policy", cspDirectives); // For older browsers
     
@@ -57,12 +55,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API Routes
   // Debug endpoint to check CSP headers
+  // Debug endpoint to check CSP headers
   app.get("/api/debug/csp", (req, res) => {
     res.json({
       csp: req.headers['content-security-policy'],
       xCsp: req.headers['x-content-security-policy'],
       allHeaders: req.headers
     });
+  });
+
+  // Agora RTC Token generation endpoint
+  app.get("/rtc/:channelName/publisher/uid/:uid/", (req, res) => {
+    try {
+      const { channelName, uid } = req.params;
+      const expiry = parseInt(req.query.expiry as string) || 3600;
+      
+      // For now, return a mock token (you'll need to implement proper token generation)
+      // In production, you should use agora-access-token package
+      const mockToken = `mock_token_${channelName}_${uid}_${Date.now()}`;
+      
+      res.json({ rtcToken: mockToken });
+    } catch (error) {
+      console.error('Token generation error:', error);
+      res.status(500).json({ error: 'Failed to generate token' });
+    }
   });
 
   app.get("/api/rooms", (req, res) => {

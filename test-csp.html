@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP Test</title>
+</head>
+<body>
+    <h1>CSP Test Page</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testCSP() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test 1: Check if we can connect to Agora domains
+                console.log('Testing Agora connection...');
+                const response = await fetch('https://statscollector-1.agora.io/events/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: true })
+                });
+                results.innerHTML += '<p style="color: green;">✅ Agora connection successful</p>';
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ Agora connection failed: ${error.message}</p>`;
+            }
+            
+            try {
+                // Test 2: Check our debug endpoint
+                const debugResponse = await fetch('/api/debug/csp');
+                const debugData = await debugResponse.json();
+                results.innerHTML += `<p style="color: blue;">📋 CSP Headers: ${JSON.stringify(debugData, null, 2)}</p>`;
+            } catch (error) {
+                results.innerHTML += `<p style="color: orange;">⚠️ Debug endpoint failed: ${error.message}</p>`;
+            }
+        }
+        
+        testCSP();
+    </script>
+</body>
+</html>
