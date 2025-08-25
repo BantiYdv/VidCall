@@ -27,11 +27,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     
-    // Add CSP headers to allow Agora connections
-    res.header(
-      "Content-Security-Policy",
-      "default-src 'self'; connect-src 'self' https://*.agora.io https://*.agora.com wss://*.agora.io wss://*.agora.com; script-src 'self' 'unsafe-inline' https://replit.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https://*.agora.io https://*.agora.com;"
-    );
+    // Add comprehensive CSP headers to allow Agora connections
+    // This should override any default CSP from hosting platforms
+    const cspDirectives = [
+      "default-src 'self'",
+      "connect-src 'self' https://*.agora.io https://*.agora.com wss://*.agora.io wss://*.agora.com https://videocall-ffj2.onrender.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://replit.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: https: blob:",
+      "media-src 'self' https://*.agora.io https://*.agora.com blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'"
+    ].join("; ");
+    
+    res.header("Content-Security-Policy", cspDirectives);
+    res.header("X-Content-Security-Policy", cspDirectives); // For older browsers
     
     if (req.method === "OPTIONS") {
       res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -41,6 +54,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Routes
+  // Debug endpoint to check CSP headers
+  app.get("/api/debug/csp", (req, res) => {
+    res.json({
+      csp: req.headers['content-security-policy'],
+      xCsp: req.headers['x-content-security-policy'],
+      allHeaders: req.headers
+    });
+  });
+
   app.get("/api/rooms", (req, res) => {
     const rooms = [];
     for (const [id, participants] of roomParticipants.entries()) {
