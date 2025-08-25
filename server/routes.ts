@@ -42,6 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "form-action 'self'",
       "frame-ancestors 'self'"
     ].join("; ");
+
+    // ban
     
     res.header("Content-Security-Policy", cspDirectives);
     res.header("X-Content-Security-Policy", cspDirectives); // For older browsers
